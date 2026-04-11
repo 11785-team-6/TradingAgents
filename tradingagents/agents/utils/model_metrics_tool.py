@@ -22,11 +22,25 @@ from langchain_core.tools import tool
 # Will be set at runtime by the experiment runner before agents are invoked.
 _DEEP_TRADING_ARTIFACTS_DIR: str | None = None
 
+# When set (e.g. "BTC/USDT"), path lookup uses this instead of the LLM-provided
+# symbol so folders like BTCUSDT match even if the agent passes "BTC-USD".
+_DEEP_TRADING_SYMBOL_OVERRIDE: str | None = None
+
 
 def set_artifacts_dir(path: str) -> None:
     """Set the path to the deep-trading artifacts directory."""
     global _DEEP_TRADING_ARTIFACTS_DIR
     _DEEP_TRADING_ARTIFACTS_DIR = path
+
+
+def set_deep_trading_symbol(symbol: str | None) -> None:
+    """Set the deep-trading symbol used to locate backtest.csv (e.g. BTC/USDT).
+    Pass None to clear. Walk-forward runner sets this per SymbolPair so
+    artifact paths align with on-disk names (BTCUSDT) while the LLM may
+    still pass the yfinance ticker (BTC-USD).
+    """
+    global _DEEP_TRADING_SYMBOL_OVERRIDE
+    _DEEP_TRADING_SYMBOL_OVERRIDE = symbol
 
 
 def _resolve_backtest_csv(symbol: str, strategy: str) -> Path | None:
@@ -130,14 +144,17 @@ def get_model_metrics(
     Returns a JSON string with per-model metrics including cumulative return,
     Sharpe ratio, max drawdown, hit rate, etc.
     """
+    effective_symbol = _DEEP_TRADING_SYMBOL_OVERRIDE or symbol
     results: dict[str, dict] = {}
 
     for strategy in _STRATEGIES:
-        csv_path = _resolve_backtest_csv(symbol, strategy)
+        csv_path = _resolve_backtest_csv(effective_symbol, strategy)
         if csv_path is None:
             results[strategy] = {
                 "status": "not_found",
-                "message": f"No backtest.csv found for {symbol}/{strategy}",
+                "message": (
+                    f"No backtest.csv found for {effective_symbol}/{strategy}"
+                ),
             }
             continue
 

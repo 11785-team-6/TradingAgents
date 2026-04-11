@@ -207,13 +207,17 @@ def run_walkforward(
     """
     # Set the deep-trading artifacts directory so the model metrics tool
     # knows where to find backtest.csv files.
-    from tradingagents.agents.utils.model_metrics_tool import set_artifacts_dir
-
+    from tradingagents.agents.utils.model_metrics_tool import (
+        set_artifacts_dir,
+        set_deep_trading_symbol,
+    )
+    
     artifacts_path = Path(wf_config.deep_trading_artifacts_dir)
     if not artifacts_path.is_absolute():
         # Resolve relative to this file's location
         artifacts_path = (Path(__file__).resolve().parents[2] / artifacts_path).resolve()
     set_artifacts_dir(str(artifacts_path))
+    set_deep_trading_symbol(symbol_pair.symbol_deep_trading)
 
     if dry_run:
         wf_config = _as_mock(wf_config)

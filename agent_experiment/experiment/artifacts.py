@@ -47,8 +47,10 @@ def _save_metadata(result: PilotResult, out_dir: Path) -> None:
     cfg = result.config
     meta = {
         "run_id": result.run_id,
+        "experiment_name": cfg.experiment_name,
         "symbol_agent": cfg.symbol_agent,
         "symbol_deep_trading": cfg.symbol_deep_trading,
+        "deep_trading_artifacts_dir": cfg.deep_trading_artifacts_dir,
         "test_pool_start": cfg.test_pool_start.isoformat(),
         "test_pool_end": cfg.test_pool_end.isoformat(),
         "pilot_windows": [
@@ -56,6 +58,7 @@ def _save_metadata(result: PilotResult, out_dir: Path) -> None:
             for w in cfg.pilot_windows
         ],
         "total_pilot_days": cfg.total_pilot_days(),
+        "date_stride": cfg.date_stride,
         "hold_position": cfg.hold_position,
         "llm_provider": cfg.llm_provider,
         "quick_think_llm": cfg.quick_think_llm,

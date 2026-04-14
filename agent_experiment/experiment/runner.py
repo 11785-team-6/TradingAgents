@@ -31,6 +31,33 @@ MAX_RETRIES_DEFAULT = 3
 RETRY_BACKOFF_S = 5
 
 
+def _configure_model_metrics_for_pilot(exp_config: ExperimentConfig) -> None:
+    """Point get_model_metrics at deep-trading artifacts when running hybrid pilot."""
+    from tradingagents.agents.utils.model_metrics_tool import (
+        set_artifacts_dir,
+        set_deep_trading_symbol,
+    )
+
+    if exp_config.deep_trading_artifacts_dir:
+        artifacts_path = Path(exp_config.deep_trading_artifacts_dir)
+        if not artifacts_path.is_absolute():
+            artifacts_path = (
+                Path(__file__).resolve().parents[2] / artifacts_path
+            ).resolve()
+        else:
+            artifacts_path = artifacts_path.resolve()
+        set_artifacts_dir(str(artifacts_path))
+    if "model" in exp_config.selected_analysts:
+        if not exp_config.deep_trading_artifacts_dir:
+            logger.warning(
+                "selected_analysts includes 'model' but deep_trading_artifacts_dir "
+                "is unset — get_model_metrics may return not_found."
+            )
+        set_deep_trading_symbol(exp_config.symbol_deep_trading)
+    else:
+        set_deep_trading_symbol(None)
+
+
 @dataclass
 class DayResult:
     date: date
@@ -197,18 +224,23 @@ def run_pilot(
         max_retries: Max attempts per date before recording an error.
 
     Returns:
-        PilotResult with one DayResult per pilot date.
+        PilotResult with one DayResult per scheduled decision date (respecting
+        ``date_stride`` within each pilot window).
     """
     if dry_run:
         exp_config = _as_mock(exp_config)
+
+    _configure_model_metrics_for_pilot(exp_config)
 
     run_id = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     pilot = PilotResult(config=exp_config, run_id=run_id)
 
     logger.info(
-        "Starting pilot run %s — %d dates, symbol=%s, provider=%s, max_retries=%d",
+        "Starting pilot run %s — %d decision dates (date_stride=%d), symbol=%s, "
+        "provider=%s, max_retries=%d",
         run_id,
         exp_config.total_pilot_days(),
+        exp_config.date_stride,
         exp_config.symbol_agent,
         exp_config.llm_provider,
         max_retries,
@@ -225,7 +257,7 @@ def run_pilot(
             window.days,
         )
 
-        for d in window.date_list():
+        for d in exp_config.dates_for_window(window):
             date_str = d.isoformat()
             logger.info("  Running %s ...", date_str)
 

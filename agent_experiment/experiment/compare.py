@@ -215,3 +215,171 @@ def run_compare(
         json.dump(comparison, f, indent=2, default=str)
 
     return md_path
+
+
+def _signal_dates_from_csv(signals_path: Path) -> set[date]:
+    df = pd.read_csv(signals_path, parse_dates=["date"])
+    return set(pd.to_datetime(df["date"]).dt.date)
+
+
+def _signal_calendar_span_from_csv(signals_path: Path) -> set[date]:
+    """All calendar days from min(signal date) through max(signal date), inclusive.
+
+    Matches ``run_eval`` forward-fill so sparse decisions (e.g. ``date_stride`` > 1)
+    still align baselines on every day the agent was effectively invested.
+    """
+    df = pd.read_csv(signals_path, parse_dates=["date"])
+    if len(df) == 0:
+        return set()
+    dmin = pd.to_datetime(df["date"]).dt.date.min()
+    dmax = pd.to_datetime(df["date"]).dt.date.max()
+    out: set[date] = set()
+    d = dmin
+    while d <= dmax:
+        out.add(d)
+        d += timedelta(days=1)
+    return out
+
+
+def _load_forecast_metrics_on_dates(
+    artifacts_root: Path,
+    symbol: str,
+    dates: set[date],
+) -> dict[str, dict[str, Any]]:
+    """Slice each strategy backtest to calendar dates present in ``dates``."""
+    results: dict[str, dict[str, Any]] = {}
+
+    for strategy in STRATEGIES:
+        path = artifacts_root / symbol / strategy / "backtest.csv"
+        if not path.exists():
+            results[strategy] = {}
+            continue
+
+        df = pd.read_csv(path, parse_dates=["timestamp"], index_col="timestamp")
+        if df.index.tz is None:
+            df.index = df.index.tz_localize("UTC")
+
+        mask = df.index.map(lambda ts: ts.date() in dates)
+        slice_df = df.loc[mask]
+        if len(slice_df) == 0:
+            results[strategy] = {}
+            continue
+
+        results[strategy] = _metrics_on_slice(slice_df)
+
+    return results
+
+
+def run_compare_for_signal_dates(
+    agent_dir: Path,
+    deep_artifacts_dir: Path,
+    run_id: str,
+    symbol: str = "BTCUSDT",
+    output_path: Path | None = None,
+) -> Path:
+    """Like ``run_compare``, but baseline slices match ``signals.csv`` dates."""
+    agent_dir = Path(agent_dir)
+    signals_path = agent_dir / "signals.csv"
+    agent_metrics_path = agent_dir / "agent_metrics.json"
+
+    if not signals_path.exists():
+        raise FileNotFoundError(f"signals.csv not found: {signals_path}")
+    if not agent_metrics_path.exists():
+        raise FileNotFoundError(
+            f"agent_metrics.json not found: {agent_metrics_path} "
+            "(run `python -m agent_experiment.scripts.run_eval` first)"
+        )
+
+    dates = _signal_calendar_span_from_csv(signals_path)
+    if not dates:
+        raise ValueError(f"No dates parsed from {signals_path}")
+
+    with agent_metrics_path.open() as f:
+        agent_data = json.load(f)
+    agent_agg = agent_data["aggregate"]
+
+    artifacts_root = deep_artifacts_dir / run_id
+    if not artifacts_root.exists():
+        raise FileNotFoundError(f"Deep-trading artifacts not found: {artifacts_root}")
+
+    forecast_metrics = _load_forecast_metrics_on_dates(artifacts_root, symbol, dates)
+
+    out = output_path or agent_dir
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+
+    dmin, dmax = min(dates), max(dates)
+    lines: list[str] = []
+    lines.append("# Agent vs Forecasting Models — Same-Calendar Comparison")
+    lines.append("")
+    lines.append(
+        f"**Evaluation period:** {len(dates)} calendar days (dense span from first "
+        f"to last signal date: {dmin} → {dmax}), aligned with ``run_eval`` forward-fill."
+    )
+    lines.append("")
+    lines.append(
+        "Forecast strategies are sliced to the **same hourly bars** on those "
+        "dates; agent aggregate metrics come from `agent_metrics.json` "
+        "(produced by `run_eval`)."
+    )
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    cols = [
+        "strategy",
+        "cumulative_return",
+        "annualized_return",
+        "sharpe",
+        "sortino",
+        "max_drawdown",
+        "calmar",
+        "excess_cumulative_return",
+        "information_ratio",
+        "hit_rate",
+        "profit_factor",
+    ]
+
+    rows: list[dict[str, str]] = []
+    rows.append(_row_for_md("**trading_agent**", agent_agg))
+    for strat in STRATEGIES:
+        m = forecast_metrics.get(strat)
+        if m:
+            rows.append(_row_for_md(strat, m))
+
+    lines.append("## Aggregate comparison (agent vs baselines on signal dates)")
+    lines.append("")
+    lines.append("| " + " | ".join(cols) + " |")
+    lines.append("| " + " | ".join("---" for _ in cols) + " |")
+    for r in rows:
+        lines.append("| " + " | ".join(str(r.get(c, "—")) for c in cols) + " |")
+    lines.append("")
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## Benchmark reference")
+    lines.append("")
+    bench_cr = agent_agg.get("benchmark_cumulative_return")
+    lines.append(
+        f"- **Buy-and-hold (signal dates):** cumulative return = {_fmt_num(bench_cr)}"
+    )
+    lines.append("")
+
+    md_path = out / "comparison_agent_vs_forecast_by_signals.md"
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+
+    comparison = {
+        "signal_calendar_span": {
+            "min": str(dmin),
+            "max": str(dmax),
+            "n_calendar_days": len(dates),
+        },
+        "agent": agent_agg,
+        "forecast": {k: v for k, v in forecast_metrics.items() if v},
+    }
+    with (out / "comparison_agent_vs_forecast_by_signals.json").open(
+        "w", encoding="utf-8"
+    ) as f:
+        json.dump(comparison, f, indent=2, default=str)
+
+    return md_path

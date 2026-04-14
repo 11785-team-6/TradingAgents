@@ -67,10 +67,11 @@ def main(argv: list[str] | None = None) -> int:
 
     logging.info("Loaded config: %s", config_path)
     logging.info(
-        "  Symbol: %s | Windows: %d | Days: %d | Provider: %s",
+        "  Symbol: %s | Windows: %d | Decision days: %d | date_stride: %d | Provider: %s",
         exp_config.symbol_agent,
         len(exp_config.pilot_windows),
         exp_config.total_pilot_days(),
+        exp_config.date_stride,
         exp_config.llm_provider,
     )
     for i, w in enumerate(exp_config.pilot_windows):

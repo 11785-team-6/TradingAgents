@@ -1,7 +1,7 @@
 # Hybrid with directional model tool (get_model_signals) — same schedule as metrics hybrid.
 # Run: python -m agent_experiment.scripts.run_pilot --config agent_experiment/configs/pilot_daily_2025_hybrid_signals.yaml
 
-experiment_name: "daily_2025_hybrid_signals"
+experiment_name: "all_year_hybrid_signals"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

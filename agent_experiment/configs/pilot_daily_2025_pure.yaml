@@ -1,7 +1,7 @@
 # Pure agent — one BUY/SELL/HOLD per calendar day, all of 2025 (BTC only).
 # Run with: python -m agent_experiment.scripts.run_pilot --config agent_experiment/configs/pilot_daily_2025_pure.yaml
 
-experiment_name: "daily_2025_pure"
+experiment_name: "all_year_pure"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

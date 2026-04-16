@@ -1,0 +1,31 @@
+# Pure agent — bear_drawdown window (BTC).
+
+experiment_name: "bear_drawdown_pure"
+
+symbol_agent: "BTC-USD"
+symbol_deep_trading: "BTC/USDT"
+
+test_pool_start: "2025-10-27"
+test_pool_end: "2025-11-25"
+
+pilot_windows:
+  - start: "2025-10-27"
+    end: "2025-11-25"
+
+date_stride: 1
+
+hold_position: 0.0
+
+llm_provider: "ollama"
+quick_think_llm: "qwen3:8b"
+deep_think_llm: "qwen3:30b-a3b"
+backend_url: "http://localhost:11434/v1"
+
+max_debate_rounds: 1
+max_risk_discuss_rounds: 1
+max_retries: 3
+
+selected_analysts:
+  - market
+  - news
+  - fundamentals

@@ -222,3 +222,6 @@ __marimo__/
 results/
 reports/
 eval_results/
+
+# Per-job frozen copies of experiment YAML (SLURM scripts)
+agent_experiment/configs/frozen/

@@ -1,7 +1,7 @@
 # Hybrid (traditional model metrics + agent) — one decision per day, 2025 (BTC).
 # Run with: python -m agent_experiment.scripts.run_pilot --config agent_experiment/configs/pilot_daily_2025_hybrid.yaml
 
-experiment_name: "daily_2025_hybrid"
+experiment_name: "all_year_hybrid_metrics"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

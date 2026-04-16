@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=daily2025-hybrid-signals
+#SBATCH --job-name=ay_hybrid_signals
 #SBATCH -p GPU-shared
 #SBATCH --gres=gpu:v100-32:1
 #SBATCH -t 48:00:00

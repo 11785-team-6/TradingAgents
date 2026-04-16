@@ -1,22 +1,18 @@
 #!/bin/bash
-#SBATCH --job-name=ay_pure
+#SBATCH --job-name=bb-hybrid-sig
 #SBATCH -p GPU-shared
 #SBATCH --gres=gpu:v100-32:1
 #SBATCH -t 48:00:00
 #SBATCH -A cis260081p
 #SBATCH --output=/ocean/projects/cis260081p/shared/logs/%x-%j.out
 #
-# Pure agent: one LLM decision per calendar day for 2025 (BTC-USD).
-# Edit PROJECT_ROOT / paths below for your PSC account.
+# Hybrid (signals) — bull_breakout window.
 
 set -euo pipefail
 
 PROJECT_ROOT="/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents"
-CONFIG_PATH="agent_experiment/configs/pilot_daily_2025_pure.yaml"
-export CONFIG_PATH
-# Parquet used by run_eval (same symbol as symbol_deep_trading → BTCUSDT)
+CONFIG_TEMPLATE="agent_experiment/configs/pilot_bull_breakout_hybrid_signals.yaml"
 OHLCV_PARQUET="${PROJECT_ROOT}/../../deep-trading/data/BTCUSDT_1h.parquet"
-# Folder name under agent_experiment/model_artifacts (or your deep-trading artifacts)
 DEEP_RUN_ID="pilot_2025"
 
 module load anaconda3
@@ -27,6 +23,12 @@ export PATH="/ocean/projects/cis260081p/chsu11/ollama-install/bin:$PATH"
 export OLLAMA_MODELS="/ocean/projects/cis260081p/chsu11/ollama-models"
 
 cd "${PROJECT_ROOT}"
+
+mkdir -p "agent_experiment/configs/frozen"
+JOB_TAG="${SLURM_JOB_ID:-local}"
+FROZEN_CONFIG="agent_experiment/configs/frozen/job_${JOB_TAG}_pilot_bull_breakout_hybrid_signals.yaml"
+cp "${CONFIG_TEMPLATE}" "${FROZEN_CONFIG}"
+export CONFIG_PATH="${FROZEN_CONFIG}"
 
 ollama serve &
 sleep 15

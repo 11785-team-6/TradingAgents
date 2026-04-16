@@ -53,8 +53,8 @@
 | `deep_trading_run_id` | 建議必填；固定讀取單一 artifacts run，避免不同 run 的 `backtest.csv` 被混用。 |
 | **`model_input_mode`** | **`metrics`**（預設）：Model analyst 用 `get_model_metrics`。**`signals`**：用 `get_model_signals`。Pure 可省略或任意，因沒有 model analyst。 |
 | **`model_strategies`** | **選填**，字串列表；指定要查哪些子資料夾（如 `lstm`、`xgboost`）。**不寫**則使用程式內預設「與 `compare.py` 一致的完整 baseline 清單」。 |
-| `artifacts_dir` | 本機預設輸出根目錄；也可用 CLI `--output-dir` 覆寫。 |
-| `experiment_name` | 寫進 `metadata.json`，方便辨識；總表也會拿來當列標籤。 |
+| `artifacts_dir` | 本機預設輸出根目錄；也可用 CLI `--output-dir` 覆寫。若有設定 `experiment_name`，程式會自動改為 `outputs/<experiment_name>`。 |
+| `experiment_name` | 寫進 `metadata.json`，方便辨識；總表也會拿來當列標籤，且會同步決定預設 `artifacts_dir`。 |
 
 **SLURM 腳本內**請改（與 YAML 對齊）：**`PROJECT_ROOT`、`YOUR_ID`、Ollama 路徑、`DEEP_RUN_ID`、`OHLCV_PARQUET`、`OUT_ROOT`**；若新增第三種 Hybrid，請改 **`--config`** 與 **`OUT_ROOT`**，避免覆蓋別次實驗輸出。
 

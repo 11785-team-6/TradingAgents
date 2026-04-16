@@ -12,7 +12,8 @@
 set -euo pipefail
 
 PROJECT_ROOT="/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents"
-OUT_ROOT="${PROJECT_ROOT}/outputs/daily_2025_pure"
+CONFIG_PATH="agent_experiment/configs/pilot_daily_2025_pure.yaml"
+export CONFIG_PATH
 # Parquet used by run_eval (same symbol as symbol_deep_trading → BTCUSDT)
 OHLCV_PARQUET="${PROJECT_ROOT}/../../deep-trading/data/BTCUSDT_1h.parquet"
 # Folder name under agent_experiment/model_artifacts (or your deep-trading artifacts)
@@ -35,10 +36,16 @@ trap cleanup EXIT
 nvidia-smi || true
 
 python -m agent_experiment.scripts.run_pilot \
-  --config agent_experiment/configs/pilot_daily_2025_pure.yaml \
-  --output-dir "${OUT_ROOT}" \
+  --config "${CONFIG_PATH}" \
   -v
 
+OUT_ROOT="$(python - <<'PY'
+import os
+from agent_experiment.experiment.config import load_config
+c = load_config(os.environ["CONFIG_PATH"])
+print(c.artifacts_dir)
+PY
+)"
 AGENT_DIR="$(find "${OUT_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
 echo "AGENT_DIR=${AGENT_DIR}"
 

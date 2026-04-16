@@ -13,7 +13,6 @@ pilot_windows:
   - start: "2025-01-01"
     end: "2025-12-31"
 
-# 1 = 每個日曆日跑一次 LLM；2 = 隔天一跑（中間日沿用上次決策，見 run_eval forward-fill）
 date_stride: 1
 
 hold_position: 0.0
@@ -32,4 +31,4 @@ selected_analysts:
   - news
   - fundamentals
 
-artifacts_dir: "outputs/daily_2025_pure"
+# artifacts_dir: "outputs/daily_2025_pure"

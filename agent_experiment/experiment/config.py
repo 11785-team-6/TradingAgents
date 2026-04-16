@@ -144,6 +144,12 @@ def load_config(path: str | Path) -> ExperimentConfig:
     if mstrat is not None and not isinstance(mstrat, list):
         raise TypeError("model_strategies must be a list of strings or omitted")
 
+    exp_name = raw.get("experiment_name")
+    # Keep naming consistent by default: when experiment_name is set, artifacts
+    # root is forced to outputs/<experiment_name>. This lets users rename runs
+    # by changing one variable in YAML.
+    artifacts_dir = f"outputs/{exp_name}" if exp_name else raw.get("artifacts_dir", "outputs")
+
     return ExperimentConfig(
         symbol_agent=raw["symbol_agent"],
         symbol_deep_trading=raw.get("symbol_deep_trading", raw["symbol_agent"]),
@@ -160,13 +166,13 @@ def load_config(path: str | Path) -> ExperimentConfig:
         selected_analysts=raw.get(
             "selected_analysts", ["market", "news", "fundamentals"]
         ),
-        artifacts_dir=raw.get("artifacts_dir", "outputs"),
+        artifacts_dir=artifacts_dir,
         max_retries=int(raw.get("max_retries", 3)),
         deep_trading_artifacts_dir=raw.get("deep_trading_artifacts_dir"),
         model_input_mode=mode,
         model_strategies=mstrat,
         deep_trading_run_id=raw.get("deep_trading_run_id"),
-        experiment_name=raw.get("experiment_name"),
+        experiment_name=exp_name,
         date_stride=stride,
         local_model_path_deep=raw.get("local_model_path_deep"),
         local_model_path_quick=raw.get("local_model_path_quick"),

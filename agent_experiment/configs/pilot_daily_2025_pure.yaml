@@ -6,12 +6,12 @@ experiment_name: "all_year_pure"
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"
 
-test_pool_start: "2025-01-01"
-test_pool_end: "2025-12-31"
+test_pool_start: "2025-02-24"
+test_pool_end: "2025-03-25"
 
 pilot_windows:
-  - start: "2025-01-01"
-    end: "2025-12-31"
+  - start: "2025-02-24"
+    end: "2025-03-25"
 
 date_stride: 1
 

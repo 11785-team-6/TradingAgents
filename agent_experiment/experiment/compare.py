@@ -383,3 +383,172 @@ def run_compare_for_signal_dates(
         json.dump(comparison, f, indent=2, default=str)
 
     return md_path
+
+
+def _load_agent_aggregate(agent_dir: Path) -> dict[str, Any]:
+    path = agent_dir / "agent_metrics.json"
+    if not path.exists():
+        raise FileNotFoundError(f"agent_metrics.json not found: {path}")
+    with path.open(encoding="utf-8") as f:
+        data = json.load(f)
+    return data["aggregate"]
+
+
+def _label_from_metadata(agent_dir: Path, fallback: str) -> str:
+    meta_path = agent_dir / "metadata.json"
+    if not meta_path.exists():
+        return fallback
+    try:
+        with meta_path.open(encoding="utf-8") as f:
+            meta = json.load(f)
+        name = meta.get("experiment_name") or meta.get("run_id")
+        return str(name) if name else fallback
+    except (json.JSONDecodeError, OSError):
+        return fallback
+
+
+def run_pure_hybrid_traditional_comparison(
+    pure_dir: Path,
+    hybrid_metrics_dir: Path,
+    deep_artifacts_dir: Path,
+    run_id: str,
+    symbol: str = "BTCUSDT",
+    hybrid_signals_dir: Path | None = None,
+    output_path: Path | None = None,
+    signals_reference_dir: Path | None = None,
+) -> Path:
+    """Single report: LLM runs (Pure + Hybrid variants) vs traditional forecast baselines.
+
+    Traditional strategies use the same hourly slice as ``run_compare_for_signal_dates``,
+    with the calendar span taken from ``signals_reference_dir`` (default: ``pure_dir``).
+    Each LLM arm must have ``agent_metrics.json`` from ``run_eval``.
+    """
+    pure_dir = Path(pure_dir)
+    hybrid_metrics_dir = Path(hybrid_metrics_dir)
+    ref = Path(signals_reference_dir) if signals_reference_dir else pure_dir
+    signals_path = ref / "signals.csv"
+    if not signals_path.exists():
+        raise FileNotFoundError(f"signals.csv not found (reference): {signals_path}")
+
+    dates = _signal_calendar_span_from_csv(signals_path)
+    if not dates:
+        raise ValueError(f"No dates in {signals_path}")
+
+    pure_agg = _load_agent_aggregate(pure_dir)
+    hy_m_agg = _load_agent_aggregate(hybrid_metrics_dir)
+    hy_s_agg = None
+    if hybrid_signals_dir is not None:
+        hsp = Path(hybrid_signals_dir)
+        if not hsp.is_dir():
+            raise FileNotFoundError(f"hybrid_signals_dir not found: {hsp}")
+        hy_s_agg = _load_agent_aggregate(hsp)
+
+    artifacts_root = deep_artifacts_dir / run_id
+    if not artifacts_root.exists():
+        raise FileNotFoundError(f"Deep-trading artifacts not found: {artifacts_root}")
+
+    forecast_metrics = _load_forecast_metrics_on_dates(artifacts_root, symbol, dates)
+
+    out = Path(output_path) if output_path else pure_dir
+    out.mkdir(parents=True, exist_ok=True)
+
+    dmin, dmax = min(dates), max(dates)
+
+    cols = [
+        "strategy",
+        "cumulative_return",
+        "annualized_return",
+        "sharpe",
+        "sortino",
+        "max_drawdown",
+        "calmar",
+        "excess_cumulative_return",
+        "information_ratio",
+        "hit_rate",
+        "profit_factor",
+    ]
+
+    rows: list[dict[str, str]] = []
+    rows.append(
+        _row_for_md(
+            f"**LLM Pure** ({_label_from_metadata(pure_dir, 'pure')})",
+            pure_agg,
+        )
+    )
+    rows.append(
+        _row_for_md(
+            f"**LLM Hybrid (metrics)** ({_label_from_metadata(hybrid_metrics_dir, 'hybrid_metrics')})",
+            hy_m_agg,
+        )
+    )
+    if hy_s_agg is not None:
+        rows.append(
+            _row_for_md(
+                f"**LLM Hybrid (signals)** ({_label_from_metadata(Path(hybrid_signals_dir), 'hybrid_signals')})",
+                hy_s_agg,
+            )
+        )
+
+    lines: list[str] = []
+    lines.append("# Pure vs Hybrid vs Traditional — Combined Comparison")
+    lines.append("")
+    lines.append(
+        f"**Evaluation window:** {len(dates)} calendar days (dense span {dmin} → {dmax}), "
+        f"from reference `signals.csv` in `{ref}`."
+    )
+    lines.append("")
+    lines.append(
+        "LLM rows use `agent_metrics.json` (post–`run_eval`). Traditional rows are "
+        "non-agent forecast baselines sliced to the **same** hourly bars on those dates."
+    )
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## LLM agents vs traditional forecasts")
+    lines.append("")
+    lines.append("| " + " | ".join(cols) + " |")
+    lines.append("| " + " | ".join("---" for _ in cols) + " |")
+    for r in rows:
+        lines.append("| " + " | ".join(str(r.get(c, "—")) for c in cols) + " |")
+
+    lines.append("")
+    lines.append("## Traditional forecasting baselines (same dates)")
+    lines.append("")
+    trad_rows: list[dict[str, str]] = []
+    for strat in STRATEGIES:
+        m = forecast_metrics.get(strat)
+        if m:
+            trad_rows.append(_row_for_md(strat, m))
+    lines.append("| " + " | ".join(cols) + " |")
+    lines.append("| " + " | ".join("---" for _ in cols) + " |")
+    for r in trad_rows:
+        lines.append("| " + " | ".join(str(r.get(c, "—")) for c in cols) + " |")
+    lines.append("")
+
+    md_path = out / "comparison_pure_hybrid_traditional.md"
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+
+    payload: dict[str, Any] = {
+        "signal_calendar_span": {
+            "min": str(dmin),
+            "max": str(dmax),
+            "n_calendar_days": len(dates),
+            "signals_reference_dir": str(ref),
+        },
+        "deep_artifacts": {"root": str(deep_artifacts_dir), "run_id": run_id, "symbol": symbol},
+        "llm": {
+            "pure": {"aggregate": pure_agg, "dir": str(pure_dir)},
+            "hybrid_metrics": {"aggregate": hy_m_agg, "dir": str(hybrid_metrics_dir)},
+            "hybrid_signals": (
+                {"aggregate": hy_s_agg, "dir": str(hybrid_signals_dir)}
+                if hy_s_agg is not None
+                else None
+            ),
+        },
+        "traditional_forecast": {k: v for k, v in forecast_metrics.items() if v},
+    }
+    json_path = out / "comparison_pure_hybrid_traditional.json"
+    with json_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, default=str)
+
+    return md_path

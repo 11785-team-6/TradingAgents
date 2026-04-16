@@ -36,6 +36,7 @@ def _configure_model_metrics_for_pilot(exp_config: ExperimentConfig) -> None:
     from tradingagents.agents.utils.model_metrics_tool import (
         set_artifacts_dir,
         set_deep_trading_symbol,
+        set_model_strategies,
     )
 
     if exp_config.deep_trading_artifacts_dir:
@@ -54,8 +55,10 @@ def _configure_model_metrics_for_pilot(exp_config: ExperimentConfig) -> None:
                 "is unset — get_model_metrics may return not_found."
             )
         set_deep_trading_symbol(exp_config.symbol_deep_trading)
+        set_model_strategies(exp_config.model_strategies)
     else:
         set_deep_trading_symbol(None)
+        set_model_strategies(None)
 
 
 @dataclass

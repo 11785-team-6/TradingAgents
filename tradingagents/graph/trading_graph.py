@@ -33,6 +33,7 @@ from tradingagents.agents.utils.agent_utils import (
     get_global_news
 )
 from tradingagents.agents.utils.model_metrics_tool import get_model_metrics
+from tradingagents.agents.utils.model_signals_tool import get_model_signals
 
 from .conditional_logic import ConditionalLogic
 from .setup import GraphSetup
@@ -65,6 +66,13 @@ class TradingAgentsGraph:
 
         # Update the interface's config
         set_config(self.config)
+
+        self.model_input_mode = (self.config.get("model_input_mode") or "metrics").lower().strip()
+        if self.model_input_mode not in ("metrics", "signals"):
+            raise ValueError(
+                "config['model_input_mode'] must be 'metrics' or 'signals', "
+                f"got {self.model_input_mode!r}"
+            )
 
         # Create necessary directories
         os.makedirs(
@@ -135,7 +143,10 @@ class TradingAgentsGraph:
         self.log_states_dict = {}  # date to full state dict
 
         # Set up the graph
-        self.graph = self.graph_setup.setup_graph(selected_analysts)
+        self.graph = self.graph_setup.setup_graph(
+            selected_analysts,
+            model_input_mode=self.model_input_mode,
+        )
 
     def _get_provider_kwargs(self) -> Dict[str, Any]:
         """Get provider-specific kwargs for LLM client creation."""
@@ -161,6 +172,10 @@ class TradingAgentsGraph:
 
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
         """Create tool nodes for different data sources using abstract methods."""
+        model_tools = (
+            [get_model_signals] if self.model_input_mode == "signals" else [get_model_metrics]
+        )
+
         return {
             "market": ToolNode(
                 [
@@ -193,12 +208,7 @@ class TradingAgentsGraph:
                     get_income_statement,
                 ]
             ),
-            "model": ToolNode(
-                [
-                    # ML model metrics tool
-                    get_model_metrics,
-                ]
-            ),
+            "model": ToolNode(model_tools),
         }
 
     def propagate(self, company_name, trade_date):

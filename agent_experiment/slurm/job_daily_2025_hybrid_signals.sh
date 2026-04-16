@@ -1,21 +1,20 @@
 #!/bin/bash
-#SBATCH --job-name=daily2025-pure
+#SBATCH --job-name=daily2025-hybrid-signals
 #SBATCH -p GPU-shared
 #SBATCH --gres=gpu:v100-32:1
 #SBATCH -t 48:00:00
 #SBATCH -A cis260081p
 #SBATCH --output=/ocean/projects/cis260081p/shared/logs/%x-%j.out
 #
-# Pure agent: one LLM decision per calendar day for 2025 (BTC-USD).
-# Edit PROJECT_ROOT / paths below for your PSC account.
+# Hybrid (signals mode): one LLM decision per calendar day for 2025.
+# Uses model_input_mode=signals (get_model_signals).
+# Edit PROJECT_ROOT / DEEP_RUN_ID / paths below for your PSC account.
 
 set -euo pipefail
 
 PROJECT_ROOT="/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents"
-OUT_ROOT="${PROJECT_ROOT}/outputs/daily_2025_pure"
-# Parquet used by run_eval (same symbol as symbol_deep_trading → BTCUSDT)
+OUT_ROOT="${PROJECT_ROOT}/outputs/daily_2025_hybrid_signals"
 OHLCV_PARQUET="${PROJECT_ROOT}/../../deep-trading/data/BTCUSDT_1h.parquet"
-# Folder name under agent_experiment/model_artifacts (or your deep-trading artifacts)
 DEEP_RUN_ID="pilot_2025"
 
 module load anaconda3
@@ -35,7 +34,7 @@ trap cleanup EXIT
 nvidia-smi || true
 
 python -m agent_experiment.scripts.run_pilot \
-  --config agent_experiment/configs/pilot_daily_2025_pure.yaml \
+  --config agent_experiment/configs/pilot_daily_2025_hybrid_signals.yaml \
   --output-dir "${OUT_ROOT}" \
   -v
 

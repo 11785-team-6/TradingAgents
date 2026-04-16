@@ -37,4 +37,7 @@ DEFAULT_CONFIG = {
     "tool_vendors": {
         # Example: "get_stock_data": "alpha_vantage",  # Override category default
     },
+    # Hybrid Model analyst: "metrics" = get_model_metrics (historical stats);
+    # "signals" = get_model_signals (per-model directional state, no lookahead).
+    "model_input_mode": "metrics",
 }

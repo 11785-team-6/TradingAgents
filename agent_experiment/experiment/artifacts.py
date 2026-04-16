@@ -65,6 +65,8 @@ def _save_metadata(result: PilotResult, out_dir: Path) -> None:
         "deep_think_llm": cfg.deep_think_llm,
         "max_debate_rounds": cfg.max_debate_rounds,
         "selected_analysts": cfg.selected_analysts,
+        "model_input_mode": cfg.model_input_mode,
+        "model_strategies": cfg.model_strategies,
         "total_results": len(result.results),
         "errors": sum(1 for r in result.results if r.error),
     }

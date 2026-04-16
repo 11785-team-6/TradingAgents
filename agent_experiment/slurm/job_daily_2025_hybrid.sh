@@ -13,8 +13,8 @@ set -euo pipefail
 
 PROJECT_ROOT="/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents"
 OUT_ROOT="${PROJECT_ROOT}/outputs/daily_2025_hybrid"
-OHLCV_PARQUET="${PROJECT_ROOT}/../deep-trading/data/BTCUSDT_1h.parquet"
-DEEP_RUN_ID="20260413"
+OHLCV_PARQUET="${PROJECT_ROOT}/../../deep-trading/data/BTCUSDT_1h.parquet"
+DEEP_RUN_ID="pilot_2025"
 
 module load anaconda3
 conda activate dl_project

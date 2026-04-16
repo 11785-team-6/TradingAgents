@@ -1,45 +1,69 @@
-"""Model Analyst — reads deep-trading model metrics and produces a report.
+"""Model Analyst — reads deep-trading artifacts (metrics and/or signals).
 
-This analyst fetches historical performance metrics (cumulative return,
-Sharpe, max drawdown, etc.) for LSTM, XGBoost, ARIMA-GARCH, and Ensemble
-models.  It only sees data *before* the current trade date to prevent
-data leakage.
+Two modes (see ``model_input_mode``):
+
+- **metrics:** historical performance via ``get_model_metrics`` (no lookahead).
+- **signals:** per-strategy directional state via ``get_model_signals`` (last bar
+  before the trade date; no lookahead).
 """
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from tradingagents.agents.utils.model_metrics_tool import get_model_metrics
+from tradingagents.agents.utils.model_signals_tool import get_model_signals
 
 
-def create_model_analyst(llm):
+def create_model_analyst(llm, model_input_mode: str = "metrics"):
 
     def model_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
 
-        tools = [get_model_metrics]
-
-        system_message = (
-            "You are a quantitative model analyst. Your job is to retrieve and "
-            "interpret the historical performance metrics of four trading models "
-            "(LSTM, XGBoost, ARIMA-GARCH, and XGB-LSTM Ensemble) for the given asset.\n\n"
-            "STRICT RULES:\n"
-            "1. You MUST call the get_model_metrics tool with the asset symbol and "
-            "the current trade date as the cutoff. This ensures you only see data "
-            "BEFORE the current date — no future information.\n"
-            "2. You MUST NOT use any knowledge from your training data about market "
-            "prices, events, or trends. Base your analysis ONLY on the tool output.\n"
-            "3. Do NOT predict future performance. Only summarize and compare past "
-            "model performance.\n\n"
-            "After retrieving the metrics, write a detailed report covering:\n"
-            "- Which model(s) performed best / worst by Sharpe ratio and cumulative return\n"
-            "- Risk profile comparison (max drawdown, volatility)\n"
-            "- Trading efficiency (hit rate, turnover)\n"
-            "- Overall assessment: which model signals seem most reliable based on "
-            "historical track record\n\n"
-            "Append a Markdown summary table at the end comparing all four models "
-            "across key metrics."
-        )
+        mode = (model_input_mode or "metrics").lower().strip()
+        if mode == "signals":
+            tools = [get_model_signals]
+            system_message = (
+                "You are a quantitative model analyst. Your job is to retrieve each "
+                "configured forecasting strategy's **current directional stance** "
+                "(BUY / SELL / HOLD) from deep-trading backtests for the given asset.\n\n"
+                "STRICT RULES:\n"
+                "1. You MUST call the get_model_signals tool with the asset symbol and "
+                "the current trade date. The tool uses only hourly bars **strictly "
+                "before** that date — no future information.\n"
+                "2. You MUST NOT use any knowledge from your training data about market "
+                "prices, events, or trends. Base your analysis ONLY on the tool output.\n"
+                "3. Interpret **direction_label** and **position** per strategy; do not "
+                "invent positions not present in the JSON.\n\n"
+                "After retrieving the signals, write a concise report covering:\n"
+                "- Agreement or conflict: how many models are long vs short vs flat\n"
+                "- Which strategies appear most aggressive (large |position|)\n"
+                "- How you would weight these mechanical signals alongside other analysts\n\n"
+                "End with a Markdown table listing each strategy, direction_label, "
+                "position, and bar_timestamp_utc."
+            )
+        else:
+            tools = [get_model_metrics]
+            system_message = (
+                "You are a quantitative model analyst. Your job is to retrieve and "
+                "interpret the historical performance metrics of the configured "
+                "forecasting strategies (from deep-trading backtests) for the given asset.\n\n"
+                "STRICT RULES:\n"
+                "1. You MUST call the get_model_metrics tool with the asset symbol and "
+                "the current trade date as the cutoff. This ensures you only see data "
+                "BEFORE the current date — no future information.\n"
+                "2. You MUST NOT use any knowledge from your training data about market "
+                "prices, events, or trends. Base your analysis ONLY on the tool output.\n"
+                "3. Do NOT predict future performance. Only summarize and compare past "
+                "model performance.\n\n"
+                "After retrieving the metrics, write a detailed report covering:\n"
+                "- Which model(s) performed best / worst by Sharpe ratio and cumulative return\n"
+                "- Risk profile comparison (max drawdown, volatility)\n"
+                "- Trading efficiency (hit rate, turnover)\n"
+                "- Overall assessment: which model signals seem most reliable based on "
+                "historical track record\n\n"
+                "Append a Markdown summary table at the end comparing all strategies "
+                "returned by the tool across key metrics."
+            )
 
         prompt = ChatPromptTemplate.from_messages(
             [

@@ -126,10 +126,39 @@ def _compute_metrics_before(df: pd.DataFrame, cutoff: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# LangChain tool
+# Configurable strategy list (YAML / runner sets this before graph build)
 # ---------------------------------------------------------------------------
 
-_STRATEGIES = ["lstm", "xgboost", "arima_garch", "xgb_lstm_ensemble"]
+# Aligns with ``agent_experiment.experiment.compare.STRATEGIES`` (forecast baselines).
+DEFAULT_MODEL_STRATEGIES: list[str] = [
+    "arima_garch",
+    "buy_and_hold",
+    "lstm",
+    "macd",
+    "sma_cross",
+    "xgb_lstm_ensemble",
+    "xgboost",
+]
+
+_MODEL_STRATEGIES: list[str] = list(DEFAULT_MODEL_STRATEGIES)
+
+
+def set_model_strategies(names: list[str] | None) -> None:
+    """Restrict which artifact subfolders are queried (empty/None → full default list)."""
+    global _MODEL_STRATEGIES
+    if not names:
+        _MODEL_STRATEGIES = list(DEFAULT_MODEL_STRATEGIES)
+    else:
+        _MODEL_STRATEGIES = list(names)
+
+
+def get_model_strategies() -> list[str]:
+    return list(_MODEL_STRATEGIES)
+
+
+# ---------------------------------------------------------------------------
+# LangChain tool
+# ---------------------------------------------------------------------------
 
 
 @tool
@@ -137,17 +166,17 @@ def get_model_metrics(
     symbol: Annotated[str, "Trading symbol, e.g. BTC/USDT or ETH/USDT"],
     cutoff_date: Annotated[str, "Cutoff date in YYYY-MM-DD format. Only data BEFORE this date is used."],
 ) -> str:
-    """Retrieve historical performance metrics for all deep-learning / ML trading
-    models (LSTM, XGBoost, ARIMA-GARCH, Ensemble) up to but NOT including the
-    cutoff date.  This prevents data leakage — you will only see past performance.
+    """Retrieve historical performance metrics for each configured forecasting strategy
+    (folders under deep-trading artifacts) up to but NOT including the cutoff date.
+    This prevents data leakage — you will only see past performance.
 
-    Returns a JSON string with per-model metrics including cumulative return,
+    Returns a JSON string with per-strategy metrics including cumulative return,
     Sharpe ratio, max drawdown, hit rate, etc.
     """
     effective_symbol = _DEEP_TRADING_SYMBOL_OVERRIDE or symbol
     results: dict[str, dict] = {}
 
-    for strategy in _STRATEGIES:
+    for strategy in _MODEL_STRATEGIES:
         csv_path = _resolve_backtest_csv(effective_symbol, strategy)
         if csv_path is None:
             results[strategy] = {

@@ -57,6 +57,13 @@ class ExperimentConfig:
     # get_model_metrics tool before building the graph.
     deep_trading_artifacts_dir: str | None = None
 
+    # Hybrid Model analyst: "metrics" = historical performance summary;
+    # "signals" = per-strategy BUY/SELL/HOLD from last bar before trade date.
+    model_input_mode: str = "metrics"
+
+    # Subfolders under <run_id>/<SYMBOL>/… to query (default: full baseline set).
+    model_strategies: list[str] | None = None
+
     # Optional label stored in metadata.json (e.g. daily_2025_pure).
     experiment_name: str | None = None
 
@@ -102,6 +109,8 @@ class ExperimentConfig:
             cfg["local_n_gpu_layers"] = self.local_n_gpu_layers
             cfg["local_n_ctx"] = self.local_n_ctx
 
+        cfg["model_input_mode"] = self.model_input_mode
+
         return cfg
 
 
@@ -124,6 +133,14 @@ def load_config(path: str | Path) -> ExperimentConfig:
     if stride < 1:
         raise ValueError("date_stride must be >= 1")
 
+    mode = (raw.get("model_input_mode") or "metrics").lower().strip()
+    if mode not in ("metrics", "signals"):
+        raise ValueError("model_input_mode must be 'metrics' or 'signals'")
+
+    mstrat = raw.get("model_strategies")
+    if mstrat is not None and not isinstance(mstrat, list):
+        raise TypeError("model_strategies must be a list of strings or omitted")
+
     return ExperimentConfig(
         symbol_agent=raw["symbol_agent"],
         symbol_deep_trading=raw.get("symbol_deep_trading", raw["symbol_agent"]),
@@ -143,6 +160,8 @@ def load_config(path: str | Path) -> ExperimentConfig:
         artifacts_dir=raw.get("artifacts_dir", "outputs"),
         max_retries=int(raw.get("max_retries", 3)),
         deep_trading_artifacts_dir=raw.get("deep_trading_artifacts_dir"),
+        model_input_mode=mode,
+        model_strategies=mstrat,
         experiment_name=raw.get("experiment_name"),
         date_stride=stride,
         local_model_path_deep=raw.get("local_model_path_deep"),

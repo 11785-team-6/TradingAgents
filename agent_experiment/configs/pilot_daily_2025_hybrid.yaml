@@ -34,4 +34,7 @@ selected_analysts:
 
 deep_trading_artifacts_dir: "agent_experiment/model_artifacts"
 
+# Default Hybrid arm: historical performance summary (not directional signals).
+model_input_mode: "metrics"
+
 artifacts_dir: "outputs/daily_2025_hybrid"

@@ -34,8 +34,10 @@ RETRY_BACKOFF_S = 5
 def _configure_model_metrics_for_pilot(exp_config: ExperimentConfig) -> None:
     """Point get_model_metrics at deep-trading artifacts when running hybrid pilot."""
     from tradingagents.agents.utils.model_metrics_tool import (
+        reset_leakage_audit_records,
         set_artifacts_dir,
         set_deep_trading_symbol,
+        set_deep_trading_run_id,
         set_model_strategies,
     )
 
@@ -54,11 +56,20 @@ def _configure_model_metrics_for_pilot(exp_config: ExperimentConfig) -> None:
                 "selected_analysts includes 'model' but deep_trading_artifacts_dir "
                 "is unset — get_model_metrics may return not_found."
             )
+        if not exp_config.deep_trading_run_id:
+            logger.warning(
+                "selected_analysts includes 'model' but deep_trading_run_id is unset — "
+                "artifact lookup may mix versions across runs."
+            )
         set_deep_trading_symbol(exp_config.symbol_deep_trading)
+        set_deep_trading_run_id(exp_config.deep_trading_run_id)
         set_model_strategies(exp_config.model_strategies)
+        reset_leakage_audit_records()
     else:
         set_deep_trading_symbol(None)
+        set_deep_trading_run_id(None)
         set_model_strategies(None)
+        reset_leakage_audit_records()
 
 
 @dataclass
@@ -76,6 +87,7 @@ class DayResult:
 class PilotResult:
     config: ExperimentConfig
     results: list[DayResult] = field(default_factory=list)
+    leakage_audit: list[dict[str, Any]] = field(default_factory=list)
     run_id: str = ""
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -130,7 +142,7 @@ def _run_single_day(
     d: date,
     window_idx: int,
     max_retries: int,
-) -> DayResult:
+) -> tuple[DayResult, list[dict[str, Any]]]:
     """Run propagate for one date with retry logic.
 
     On each failure the graph is rebuilt to get a fresh LLM context,
@@ -138,11 +150,16 @@ def _run_single_day(
     (e.g. hallucinated tool arguments) typically succeed on retry.
     """
     from .signal_map import parse_decision, decision_to_position
+    from tradingagents.agents.utils.model_metrics_tool import (
+        get_leakage_audit_records,
+        reset_leakage_audit_records,
+    )
 
     last_error: str | None = None
     total_elapsed = 0.0
 
     for attempt in range(1, max_retries + 1):
+        reset_leakage_audit_records()
         t0 = time.time()
         try:
             _final_state, decision_raw = graph.propagate(
@@ -175,7 +192,7 @@ def _run_single_day(
                 latency_s=total_elapsed,
                 window_idx=window_idx,
                 attempts=attempt,
-            )
+            ), get_leakage_audit_records()
 
         except Exception as exc:
             elapsed = time.time() - t0
@@ -210,7 +227,7 @@ def _run_single_day(
         error=last_error,
         window_idx=window_idx,
         attempts=max_retries,
-    )
+    ), get_leakage_audit_records()
 
 
 def run_pilot(
@@ -264,10 +281,11 @@ def run_pilot(
             date_str = d.isoformat()
             logger.info("  Running %s ...", date_str)
 
-            result = _run_single_day(
+            result, leakage_rows = _run_single_day(
                 graph, exp_config, date_str, d, window_idx, max_retries,
             )
             pilot.results.append(result)
+            pilot.leakage_audit.extend(leakage_rows)
 
     return pilot
 

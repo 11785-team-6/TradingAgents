@@ -21,10 +21,12 @@ from langchain_core.tools import tool
 
 # Will be set at runtime by the experiment runner before agents are invoked.
 _DEEP_TRADING_ARTIFACTS_DIR: str | None = None
+_DEEP_TRADING_RUN_ID: str | None = None
 
 # When set (e.g. "BTC/USDT"), path lookup uses this instead of the LLM-provided
 # symbol so folders like BTCUSDT match even if the agent passes "BTC-USD".
 _DEEP_TRADING_SYMBOL_OVERRIDE: str | None = None
+_LEAKAGE_AUDIT_RECORDS: list[dict] = []
 
 
 def set_artifacts_dir(path: str) -> None:
@@ -43,6 +45,25 @@ def set_deep_trading_symbol(symbol: str | None) -> None:
     _DEEP_TRADING_SYMBOL_OVERRIDE = symbol
 
 
+def set_deep_trading_run_id(run_id: str | None) -> None:
+    """Fix lookup to one artifacts run folder (e.g. 20260413)."""
+    global _DEEP_TRADING_RUN_ID
+    _DEEP_TRADING_RUN_ID = run_id
+
+
+def reset_leakage_audit_records() -> None:
+    global _LEAKAGE_AUDIT_RECORDS
+    _LEAKAGE_AUDIT_RECORDS = []
+
+
+def append_leakage_audit_record(record: dict) -> None:
+    _LEAKAGE_AUDIT_RECORDS.append(dict(record))
+
+
+def get_leakage_audit_records() -> list[dict]:
+    return list(_LEAKAGE_AUDIT_RECORDS)
+
+
 def _resolve_backtest_csv(symbol: str, strategy: str) -> Path | None:
     """Find the backtest.csv for a given symbol + strategy under artifacts."""
     if _DEEP_TRADING_ARTIFACTS_DIR is None:
@@ -52,7 +73,17 @@ def _resolve_backtest_csv(symbol: str, strategy: str) -> Path | None:
     # artifacts/<run_id>/<symbol>/<strategy>/backtest.csv
     # We search for the first match across run_ids.
     symbol_clean = symbol.replace("/", "").replace("-", "")
-    for run_dir in sorted(base.iterdir()):
+    run_dirs = []
+    if _DEEP_TRADING_RUN_ID:
+        pinned = base / _DEEP_TRADING_RUN_ID
+        if pinned.exists() and pinned.is_dir():
+            run_dirs = [pinned]
+        else:
+            return None
+    else:
+        run_dirs = [d for d in sorted(base.iterdir()) if d.is_dir()]
+
+    for run_dir in run_dirs:
         if not run_dir.is_dir():
             continue
         for sym_dir in run_dir.iterdir():
@@ -179,6 +210,20 @@ def get_model_metrics(
     for strategy in _MODEL_STRATEGIES:
         csv_path = _resolve_backtest_csv(effective_symbol, strategy)
         if csv_path is None:
+            append_leakage_audit_record(
+                {
+                    "tool": "get_model_metrics",
+                    "symbol": effective_symbol,
+                    "strategy": strategy,
+                    "trade_date": cutoff_date,
+                    "cutoff_timestamp_utc": f"{cutoff_date} 00:00:00+00:00",
+                    "max_timestamp_used_utc": None,
+                    "strictly_before_cutoff": None,
+                    "status": "not_found",
+                    "ok": False,
+                    "run_id_constraint": _DEEP_TRADING_RUN_ID,
+                }
+            )
             results[strategy] = {
                 "status": "not_found",
                 "message": (
@@ -191,8 +236,52 @@ def get_model_metrics(
             df = pd.read_csv(csv_path, index_col=0, parse_dates=True)
             if df.index.tz is None:
                 df.index = df.index.tz_localize("UTC")
+            cutoff_ts = pd.Timestamp(cutoff_date, tz="UTC")
+            sub = df.loc[df.index < cutoff_ts]
+            max_ts = sub.index.max() if len(sub) > 0 else None
+            strictly_before = bool(max_ts < cutoff_ts) if max_ts is not None else None
+            status = "ok"
+            if max_ts is not None and not strictly_before:
+                status = "leakage_violation"
+            append_leakage_audit_record(
+                {
+                    "tool": "get_model_metrics",
+                    "symbol": effective_symbol,
+                    "strategy": strategy,
+                    "trade_date": cutoff_date,
+                    "cutoff_timestamp_utc": str(cutoff_ts),
+                    "max_timestamp_used_utc": str(max_ts) if max_ts is not None else None,
+                    "strictly_before_cutoff": strictly_before,
+                    "status": status,
+                    "ok": status == "ok",
+                    "run_id_constraint": _DEEP_TRADING_RUN_ID,
+                }
+            )
+            if status == "leakage_violation":
+                results[strategy] = {
+                    "status": status,
+                    "message": (
+                        f"Leakage check failed: max timestamp {max_ts} is not < cutoff {cutoff_ts}"
+                    ),
+                }
+                continue
             results[strategy] = _compute_metrics_before(df, cutoff_date)
         except Exception as exc:
+            append_leakage_audit_record(
+                {
+                    "tool": "get_model_metrics",
+                    "symbol": effective_symbol,
+                    "strategy": strategy,
+                    "trade_date": cutoff_date,
+                    "cutoff_timestamp_utc": f"{cutoff_date} 00:00:00+00:00",
+                    "max_timestamp_used_utc": None,
+                    "strictly_before_cutoff": None,
+                    "status": "error",
+                    "ok": False,
+                    "error": str(exc),
+                    "run_id_constraint": _DEEP_TRADING_RUN_ID,
+                }
+            )
             results[strategy] = {"status": "error", "message": str(exc)}
 
     return json.dumps(results, indent=2)

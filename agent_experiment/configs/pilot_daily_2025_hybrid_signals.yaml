@@ -34,6 +34,8 @@ selected_analysts:
 
 # Same artifact root as metrics hybrid; Model analyst uses get_model_signals.
 deep_trading_artifacts_dir: "agent_experiment/model_artifacts"
+# Pin one artifacts run folder to avoid cross-run mixing during tool lookup.
+deep_trading_run_id: "pilot_2025"
 model_input_mode: "signals"
 
 # Optional: restrict which strategy folders are queried (default = full baseline set).

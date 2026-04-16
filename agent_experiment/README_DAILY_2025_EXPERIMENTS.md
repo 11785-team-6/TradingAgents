@@ -50,6 +50,7 @@
 | `selected_analysts` | Pure **不要** `model`；兩種 Hybrid **要**含 `model`。 |
 | `symbol_agent` / `symbol_deep_trading` | 換幣種時兩邊一起改；`run_eval` 的 parquet 與 `run_compare_range` 的 `--symbol` 也要對應（例如 `ETHUSDT`）。 |
 | `deep_trading_artifacts_dir` | 僅 Hybrid 需要；指向含多個 `run_id` 子目錄的 artifacts **根**目錄。 |
+| `deep_trading_run_id` | 建議必填；固定讀取單一 artifacts run，避免不同 run 的 `backtest.csv` 被混用。 |
 | **`model_input_mode`** | **`metrics`**（預設）：Model analyst 用 `get_model_metrics`。**`signals`**：用 `get_model_signals`。Pure 可省略或任意，因沒有 model analyst。 |
 | **`model_strategies`** | **選填**，字串列表；指定要查哪些子資料夾（如 `lstm`、`xgboost`）。**不寫**則使用程式內預設「與 `compare.py` 一致的完整 baseline 清單」。 |
 | `artifacts_dir` | 本機預設輸出根目錄；也可用 CLI `--output-dir` 覆寫。 |
@@ -90,7 +91,7 @@ python -m agent_experiment.scripts.run_pilot \
   -v
 ```
 
-每次 run 會新建 `outputs/.../<UTC_run_id>/`，底下有 **`signals.csv`**、**`metadata.json`**（含 `model_input_mode`、`model_strategies`）、**`summary.txt`**。
+每次 run 會新建 `outputs/.../<UTC_run_id>/`，底下有 **`signals.csv`**、**`metadata.json`**（含 `model_input_mode`、`model_strategies`、`deep_trading_run_id`）、**`summary.txt`**、以及 **`leakage_audit.csv`/`leakage_audit.jsonl`**（逐次檢查）。
 
 快速驗證管線（不呼叫真 LLM）：
 
@@ -184,7 +185,8 @@ sbatch agent_experiment/slurm/job_daily_2025_comparison.sh
 | 檔案 | 內容 |
 |------|------|
 | `signals.csv` | 每天一列：`date`、`position`、原始 `decision_raw`、錯誤欄位。 |
-| `metadata.json` | `experiment_name`、`selected_analysts`、**`model_input_mode`**、**`model_strategies`**、錯誤數量等。 |
+| `metadata.json` | `experiment_name`、`selected_analysts`、**`model_input_mode`**、**`model_strategies`**、**`deep_trading_run_id`**、錯誤數量與 leakage 統計等。 |
+| `leakage_audit.csv` / `.jsonl` | 每個 tool 呼叫、每個策略的 cutoff 檢查紀錄（`max_timestamp_used_utc < cutoff_timestamp_utc`）。 |
 | `summary_metrics.md` | 人讀的績效摘要（與 deep-trading 同一套指標定義）。 |
 | `agent_metrics.json` | `aggregate` + `per_window`（全年只有 window 0 一個窗）。 |
 | `comparison_agent_vs_forecast_by_signals.md` | **該次** LLM run vs 各 baseline（單臂表）。 |
@@ -200,6 +202,6 @@ sbatch agent_experiment/slurm/job_daily_2025_comparison.sh
 
 ## 程式上改了什麼（供維護）
 
-- `ExperimentConfig`：`deep_trading_artifacts_dir`、`experiment_name`、**`model_input_mode`**、**`model_strategies`**、`date_stride`；Hybrid pilot 會設定 artifacts、symbol override、**`set_model_strategies`**。  
+- `ExperimentConfig`：`deep_trading_artifacts_dir`、`deep_trading_run_id`、`experiment_name`、**`model_input_mode`**、**`model_strategies`**、`date_stride`；Hybrid pilot 會設定 artifacts、symbol override、run_id、**`set_model_strategies`**。  
 - `compare.py`：`run_compare_for_signal_dates`、`run_pure_hybrid_traditional_comparison`。  
 - Model analyst：`get_model_metrics` / `get_model_signals` 二擇一（由 `model_input_mode` 決定）。

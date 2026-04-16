@@ -15,6 +15,7 @@ from langchain_core.tools import tool
 import tradingagents.agents.utils.model_metrics_tool as _mmt
 from tradingagents.agents.utils.model_metrics_tool import (
     _resolve_backtest_csv,
+    append_leakage_audit_record,
     get_model_strategies,
 )
 
@@ -38,6 +39,20 @@ def _signals_for_strategy(
 ) -> dict:
     csv_path = _resolve_backtest_csv(symbol, strategy)
     if csv_path is None:
+        append_leakage_audit_record(
+            {
+                "tool": "get_model_signals",
+                "symbol": symbol,
+                "strategy": strategy,
+                "trade_date": as_of_date,
+                "cutoff_timestamp_utc": f"{as_of_date} 00:00:00+00:00",
+                "max_timestamp_used_utc": None,
+                "strictly_before_cutoff": None,
+                "status": "not_found",
+                "ok": False,
+                "run_id_constraint": _mmt._DEEP_TRADING_RUN_ID,
+            }
+        )
         return {
             "status": "not_found",
             "message": f"No backtest.csv found for {symbol}/{strategy}",
@@ -53,6 +68,20 @@ def _signals_for_strategy(
     cutoff = pd.Timestamp(as_of_date, tz="UTC")
     sub = df.loc[df.index < cutoff]
     if len(sub) < 1:
+        append_leakage_audit_record(
+            {
+                "tool": "get_model_signals",
+                "symbol": symbol,
+                "strategy": strategy,
+                "trade_date": as_of_date,
+                "cutoff_timestamp_utc": str(cutoff),
+                "max_timestamp_used_utc": None,
+                "strictly_before_cutoff": None,
+                "status": "insufficient_data",
+                "ok": False,
+                "run_id_constraint": _mmt._DEEP_TRADING_RUN_ID,
+            }
+        )
         return {"status": "insufficient_data", "bars": 0}
 
     row = sub.iloc[-1]
@@ -62,6 +91,29 @@ def _signals_for_strategy(
 
     sig = float(row["signal"]) if "signal" in row.index else float("nan")
     ts = sub.index[-1]
+    strictly_before = bool(ts < cutoff)
+    status = "ok" if strictly_before else "leakage_violation"
+    append_leakage_audit_record(
+        {
+            "tool": "get_model_signals",
+            "symbol": symbol,
+            "strategy": strategy,
+            "trade_date": as_of_date,
+            "cutoff_timestamp_utc": str(cutoff),
+            "max_timestamp_used_utc": str(ts),
+            "strictly_before_cutoff": strictly_before,
+            "status": status,
+            "ok": status == "ok",
+            "run_id_constraint": _mmt._DEEP_TRADING_RUN_ID,
+        }
+    )
+    if status == "leakage_violation":
+        return {
+            "status": status,
+            "bars_before_cutoff": int(len(sub)),
+            "bar_timestamp_utc": str(ts),
+            "message": f"Leakage check failed: bar timestamp {ts} is not < cutoff {cutoff}",
+        }
 
     return {
         "status": "ok",

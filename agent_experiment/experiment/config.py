@@ -63,6 +63,9 @@ class ExperimentConfig:
 
     # Subfolders under <run_id>/<SYMBOL>/… to query (default: full baseline set).
     model_strategies: list[str] | None = None
+    # Optional fixed run folder under deep_trading_artifacts_dir; when set,
+    # model tools only read this run to prevent accidental cross-run mixing.
+    deep_trading_run_id: str | None = None
 
     # Optional label stored in metadata.json (e.g. daily_2025_pure).
     experiment_name: str | None = None
@@ -162,6 +165,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         deep_trading_artifacts_dir=raw.get("deep_trading_artifacts_dir"),
         model_input_mode=mode,
         model_strategies=mstrat,
+        deep_trading_run_id=raw.get("deep_trading_run_id"),
         experiment_name=raw.get("experiment_name"),
         date_stride=stride,
         local_model_path_deep=raw.get("local_model_path_deep"),

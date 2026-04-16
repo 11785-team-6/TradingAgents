@@ -33,6 +33,8 @@ selected_analysts:
   - model
 
 deep_trading_artifacts_dir: "agent_experiment/model_artifacts"
+# Pin one artifacts run folder to avoid cross-run mixing during tool lookup.
+deep_trading_run_id: "pilot_2025"
 
 # Default Hybrid arm: historical performance summary (not directional signals).
 model_input_mode: "metrics"

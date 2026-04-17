@@ -14,6 +14,8 @@ set -euo pipefail
 PROJECT_ROOT="/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents"
 CONFIG_PATH="agent_experiment/configs/pilot_daily_2025_hybrid.yaml"
 export CONFIG_PATH
+OLLAMA_PORT=11435
+BACKEND_URL="http://127.0.0.1:${OLLAMA_PORT}/v1"
 OHLCV_PARQUET="${PROJECT_ROOT}/../../deep-trading/data/BTCUSDT_1h.parquet"
 DEEP_RUN_ID="pilot_2025"
 
@@ -26,12 +28,15 @@ export OLLAMA_MODELS="/ocean/projects/cis260081p/chsu11/ollama-models"
 
 cd "${PROJECT_ROOT}"
 
-ollama serve &
-sleep 15
-cleanup() { kill %1 2>/dev/null || true; }
-trap cleanup EXIT
+source "agent_experiment/slurm/lib/ollama_bootstrap.sh"
+start_ollama_or_die "127.0.0.1:${OLLAMA_PORT}" "ollama-${OLLAMA_PORT}.log" 45
+trap stop_ollama_if_started EXIT
 
 nvidia-smi || true
+
+RUNTIME_CONFIG="${SLURM_TMPDIR:-/tmp}/$(basename "${CONFIG_PATH%.yaml}")_${SLURM_JOB_ID:-local}.yaml"
+create_runtime_config_with_backend "${CONFIG_PATH}" "${BACKEND_URL}" "${RUNTIME_CONFIG}"
+export CONFIG_PATH="${RUNTIME_CONFIG}"
 
 python -m agent_experiment.scripts.run_pilot \
   --config "${CONFIG_PATH}" \

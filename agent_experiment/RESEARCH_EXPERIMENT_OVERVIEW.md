@@ -114,6 +114,45 @@ A **January 2025** pilot uses `2025-01-01`–`2025-01-31` (31 decision days when
 **Inputs:** YAML + Ollama (non–dry-run).  
 **Outputs (per run directory):** `signals.csv`, `metadata.json`, `summary.txt`.
 
+**Prompt-size control note (important for local Ollama runs):**
+
+- To reduce `truncating input prompt` warnings and timeout risk, data tools should return **bounded** payloads instead of unbounded CSV/history blobs.
+- In this repo, technical and OHLCV tool outputs are intentionally capped (recent rows + compact summary) so truncation is controlled by code, not by server-side hard clipping.
+- This is a quality-control choice: controlled compression preserves the most recent, decision-relevant context with deterministic formatting, while server-side truncation can drop arbitrary earlier instructions/tool evidence.
+
+### Phase B.1 — Prompt Budget Calibration (scientific rationale)
+
+The current cap values are set by a **three-layer prior** (indicator convention, asset-pricing horizon evidence, and crypto-specific evidence), while respecting local-LLM context limits:
+
+- **Indicators: `14` days / lines**
+  - Uses the canonical 14-period convention introduced by **Wilder (1978)** for RSI/ATR-style volatility-momentum diagnostics.
+  - Interpreted for 24/7 crypto as a two-week short-horizon reaction window (fast information diffusion, sentiment shocks, and short-horizon continuation/reversal).
+  - Compared with 21+, this cap materially reduces prompt growth in multi-agent tool-call chains and lowers truncation risk while staying aligned with indicator-standard practice.
+
+- **OHLCV payload: latest `90` rows**
+  - About one quarter on daily bars, giving trend + pullback structure without dumping full-history CSV.
+  - Keeps recency signal (latest bars) while preserving medium-term context needed by the Market analyst.
+  - Economically defensible as a medium-context anchor: classic equity evidence documents momentum persistence over **3–12 months** (Jegadeesh & Titman, 1993), and broad futures evidence documents **1–12 month** time-series momentum (Moskowitz, Ooi & Pedersen, 2012).
+  - Crypto asset-pricing evidence also identifies momentum as a priced cross-sectional factor (Liu, Tsyvinski & Wu, 2022), while crypto-focused TSMOM studies report strong short/intermediate-horizon continuation with faster regime turnover than equities (Borgards, 2021). A 90-bar cap keeps this medium-horizon context while controlling prompt growth.
+  - The output includes a compact summary (min/max/last/avg volume) to retain statistical context after row capping.
+
+- **Why some dates truncate while others do not**
+  - Prompt size varies day by day due to different tool-call counts, debate trajectories, and news payload sizes.
+  - Therefore, `truncating input prompt` can appear on isolated dates even under identical YAML date windows.
+
+**References for parameter rationale:**
+
+**Peer-reviewed core references**
+- Wilder, J. W. (1978). *New Concepts in Technical Trading Systems* (RSI/ATR 14-period convention).
+- Jegadeesh, N., & Titman, S. (1993). *Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency*. *Journal of Finance*, 48(1), 65-91.
+- Moskowitz, T. J., Ooi, Y. H., & Pedersen, L. H. (2012). *Time Series Momentum*. *Journal of Financial Economics*, 104(2), 228-250.
+- Liu, Y., Tsyvinski, A., & Wu, X. (2022). *Common Risk Factors in Cryptocurrency*. *Journal of Finance*, 77(2), 1133-1177.
+- Borgards, O. (2021). *Dynamic time series momentum of cryptocurrencies*. *North American Journal of Economics and Finance*, 57, 101392.
+- Makarov, I., & Schoar, A. (2020). *Trading and Arbitrage in Cryptocurrency Markets*. *Journal of Financial Economics*, 135(2), 293-319. (market frictions/segmentation context for faster crypto regime shifts).
+
+**Supplementary preprint / working-paper evidence (interpret with caution)**
+- Drogen, L., Hoffstein, C., & Otte, M. (2023). *Cross-sectional Momentum in Cryptocurrency Markets* (SSRN preprint; reports short-horizon continuation under investability filters).
+
 ### Phase C — Performance evaluation (`run_eval`)
 
 **Inputs:** `signals.csv` + OHLCV parquet.  
@@ -191,6 +230,7 @@ Pure and Hybrid runs each produce their **own** nine-file bundle under their res
 3. **Backtest vs. live:** Slippage, fees, liquidity, and execution latency are only partially modeled (see `run_eval` fee/slippage flags).  
 4. **Information set:** Hybrid strictly has **more** information than Pure (either summarized **past** performance in metrics mode, or **current mechanical positions** in signals mode). State which variant was used when interpreting results.  
 5. **Additional logs:** TradingAgents may emit other files (e.g. under `eval_results/`) depending on graph settings; they are **not** part of the nine-file contract above.
+6. **Context budget trade-off:** Prompt-size caps improve stability/speed and reduce truncation, but can remove older detail; cap values (rows/days) should be reported in experiment notes for reproducibility.
 
 ---
 

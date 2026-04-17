@@ -1,0 +1,12 @@
+Pilot Experiment Run: 20260417T111327Z
+Symbol: BTC-USD (agent) / BTC/USDT (deep-trading)
+Provider: ollama — quick=qwen3:8b, deep=qwen3:30b-a3b
+Windows: 1, Total days: 30
+
+Window 0: 2025-10-27 → 2025-11-25 (30d)
+  BUY=0  SELL=14  HOLD=16  errors=0  retried=1
+  avg latency: 343.9s
+
+Total inference time: 10316s (171.9min)
+Total retried: 1/30 dates
+Leakage checks: 210 total, 0 failed

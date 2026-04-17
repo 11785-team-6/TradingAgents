@@ -1,0 +1,113 @@
+{
+  "aggregate": {
+    "cumulative_return": 0.21955095401893598,
+    "annualized_return": 10.206871559460165,
+    "annualized_volatility": 0.36694111371245297,
+    "downside_volatility_annualized": 0.199854770137746,
+    "sharpe": 6.769281131332782,
+    "sortino": 12.428662851789559,
+    "max_drawdown": -0.0688451435889077,
+    "calmar": 148.25841050471266,
+    "var_95": -0.005469096346921587,
+    "cvar_95": -0.00851570040649188,
+    "ulcer_index": 0.024617080025853607,
+    "time_under_water_ratio": 0.9069444444444444,
+    "benchmark_cumulative_return": -0.23641637745244437,
+    "benchmark_annualized_return": -0.9625217618960283,
+    "excess_cumulative_return": 0.45596733147138035,
+    "tracking_error_annualized": 0.8228044169628913,
+    "information_ratio": 6.842766516007378,
+    "turnover_mean": 0.020833333333333332,
+    "turnover_annualized": 182.625,
+    "hit_rate": 0.5365853658536586,
+    "avg_holding_bars": 35.875,
+    "profit_factor": 1.370388540025318,
+    "regimes": {
+      "high_vol": {
+        "cumulative_return": 0.16973131590995383,
+        "annualized_return": 578.6443130650676,
+        "annualized_volatility": 0.4987067019899516,
+        "sharpe": 13.01052300004145,
+        "sortino": 26.467928870730933,
+        "max_drawdown": -0.0386654100120809,
+        "calmar": 14965.42550264621,
+        "cvar_95": -0.01014999034962835
+      },
+      "low_vol": {
+        "cumulative_return": 0.04259066798619959,
+        "annualized_return": 1.065624211506818,
+        "annualized_volatility": 0.2909326419586027,
+        "sharpe": 2.638789754570883,
+        "sortino": 4.346985179521039,
+        "max_drawdown": -0.04975746146697979,
+        "calmar": 21.416370130015395,
+        "cvar_95": -0.007541707412009111
+      }
+    },
+    "diagnostics": {
+      "total_bars": 720,
+      "fraction_long": 0.0,
+      "fraction_short": 0.4,
+      "fraction_flat": 0.6,
+      "flip_count": 15
+    }
+  },
+  "per_window": [
+    {
+      "cumulative_return": 0.21955095401893598,
+      "annualized_return": 10.206871559460165,
+      "annualized_volatility": 0.36694111371245297,
+      "downside_volatility_annualized": 0.199854770137746,
+      "sharpe": 6.769281131332782,
+      "sortino": 12.428662851789559,
+      "max_drawdown": -0.0688451435889077,
+      "calmar": 148.25841050471266,
+      "var_95": -0.005469096346921587,
+      "cvar_95": -0.00851570040649188,
+      "ulcer_index": 0.024617080025853607,
+      "time_under_water_ratio": 0.9069444444444444,
+      "benchmark_cumulative_return": -0.23641637745244437,
+      "benchmark_annualized_return": -0.9625217618960283,
+      "excess_cumulative_return": 0.45596733147138035,
+      "tracking_error_annualized": 0.8228044169628913,
+      "information_ratio": 6.842766516007378,
+      "turnover_mean": 0.020833333333333332,
+      "turnover_annualized": 182.625,
+      "hit_rate": 0.5365853658536586,
+      "avg_holding_bars": 35.875,
+      "profit_factor": 1.370388540025318,
+      "regimes": {
+        "high_vol": {
+          "cumulative_return": 0.16973131590995383,
+          "annualized_return": 578.6443130650676,
+          "annualized_volatility": 0.4987067019899516,
+          "sharpe": 13.01052300004145,
+          "sortino": 26.467928870730933,
+          "max_drawdown": -0.0386654100120809,
+          "calmar": 14965.42550264621,
+          "cvar_95": -0.01014999034962835
+        },
+        "low_vol": {
+          "cumulative_return": 0.04259066798619959,
+          "annualized_return": 1.065624211506818,
+          "annualized_volatility": 0.2909326419586027,
+          "sharpe": 2.638789754570883,
+          "sortino": 4.346985179521039,
+          "max_drawdown": -0.04975746146697979,
+          "calmar": 21.416370130015395,
+          "cvar_95": -0.007541707412009111
+        }
+      },
+      "diagnostics": {
+        "total_bars": 720,
+        "fraction_long": 0.0,
+        "fraction_short": 0.4,
+        "fraction_flat": 0.6,
+        "flip_count": 15
+      },
+      "window_idx": 0,
+      "window_start": "2025-10-27",
+      "window_end": "2025-11-25"
+    }
+  ]
+}

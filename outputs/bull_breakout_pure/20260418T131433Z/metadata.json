@@ -1,0 +1,35 @@
+{
+  "run_id": "20260418T131433Z",
+  "experiment_name": "bull_breakout_pure",
+  "symbol_agent": "BTC-USD",
+  "symbol_deep_trading": "BTC/USDT",
+  "deep_trading_artifacts_dir": null,
+  "deep_trading_run_id": null,
+  "test_pool_start": "2025-04-09",
+  "test_pool_end": "2025-05-08",
+  "pilot_windows": [
+    {
+      "start": "2025-04-09",
+      "end": "2025-05-08",
+      "days": 30
+    }
+  ],
+  "total_pilot_days": 30,
+  "date_stride": 1,
+  "hold_position": 0.0,
+  "llm_provider": "ollama",
+  "quick_think_llm": "qwen3:8b",
+  "deep_think_llm": "qwen3:30b-a3b",
+  "max_debate_rounds": 1,
+  "selected_analysts": [
+    "market",
+    "news",
+    "fundamentals"
+  ],
+  "model_input_mode": "metrics",
+  "model_strategies": null,
+  "total_results": 30,
+  "errors": 0,
+  "leakage_checks_total": 0,
+  "leakage_checks_failed": 0
+}

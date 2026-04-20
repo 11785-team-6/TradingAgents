@@ -1,6 +1,6 @@
 # Pure vs Hybrid vs Traditional — Combined Comparison
 
-**Evaluation window:** 30 calendar days (dense span 2025-04-09 → 2025-05-08), from reference `signals.csv` in `/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/bull_breakout_pure/20260417T061729Z`.
+**Evaluation window:** 30 calendar days (dense span 2025-04-09 → 2025-05-08), from reference `signals.csv` in `/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/bull_breakout_pure/20260418T131433Z`.
 
 LLM rows use `agent_metrics.json` (post–`run_eval`). Traditional rows are non-agent forecast baselines sliced to the **same** hourly bars on those dates.
 
@@ -10,9 +10,9 @@ LLM rows use `agent_metrics.json` (post–`run_eval`). Traditional rows are non-
 
 | strategy | cumulative_return | annualized_return | sharpe | sortino | max_drawdown | calmar | excess_cumulative_return | information_ratio | hit_rate | profit_factor |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **LLM Pure** (bull_breakout_pure) | -0.2154 | -0.9479 | -7.1208 | -9.7226 | -0.2288 | -4.1432 | -0.5617 | -7.9906 | 0.4574 | 0.7548 |
-| **LLM Hybrid (metrics)** (bull_breakout_hybrid) | -0.1471 | -0.8559 | -6.0034 | -7.3051 | -0.1925 | -4.4452 | -0.4934 | -8.0208 | 0.4508 | 0.7007 |
-| **LLM Hybrid (signals)** (bull_breakout_hybrid_signals) | -0.0604 | -0.5314 | -3.3373 | -4.4939 | -0.0952 | -5.5802 | -0.4066 | -7.6662 | 0.4708 | 0.8280 |
+| **LLM Pure** (bull_breakout_pure) | -0.0866 | -0.6679 | -3.8199 | -6.2293 | -0.1255 | -5.3202 | -0.4328 | -7.4092 | 0.4308 | 0.8478 |
+| **LLM Hybrid (metrics)** (bull_breakout_hybrid) | 0.0775 | 1.4807 | 4.4690 | 8.2895 | -0.0275 | 53.78 | -0.2688 | -4.8997 | 0.5152 | 1.2707 |
+| **LLM Hybrid (signals)** (bull_breakout_hybrid_signals) | -0.2197 | -0.9512 | -10.59 | -14.47 | -0.2197 | -4.3294 | -0.5660 | -10.22 | 0.4345 | 0.6332 |
 
 ## Traditional forecasting baselines (same dates)
 

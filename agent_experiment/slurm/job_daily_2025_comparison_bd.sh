@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ay-compare
+#SBATCH --job-name=bd-compare
 #SBATCH -p GPU-shared
 #SBATCH --gres=gpu:v100-16:1
 #SBATCH -t 01:00:00
@@ -32,6 +32,6 @@ python -m agent_experiment.scripts.run_experiment_comparison \
   --deep-artifacts "${DEEP_ARTIFACTS}" \
   --run-id "${DEEP_RUN_ID}" \
   --symbol "${SYMBOL}" \
-  --output "${PROJECT_ROOT}/outputs/final_comparison"
+  --output "${PROJECT_ROOT}/outputs/bear_drawdown_final_comparison"
 
-echo "Done. Final report under: ${PROJECT_ROOT}/outputs/final_comparison"
+echo "Done. Final report under: ${PROJECT_ROOT}/outputs/bear_drawdown_final_comparison"

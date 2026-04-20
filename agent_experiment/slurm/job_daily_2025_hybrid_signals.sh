@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ay_hybrid_signals
+#SBATCH --job-name=ay_hybrid_signalssbatch agent_experiment/slurm/job_daily_2025_comparison.sh
 #SBATCH -p GPU-shared
 #SBATCH --gres=gpu:v100-32:1
 #SBATCH -t 48:00:00

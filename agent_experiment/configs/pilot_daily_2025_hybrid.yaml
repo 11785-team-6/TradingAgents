@@ -6,16 +6,12 @@ experiment_name: "all_year_hybrid_metrics"
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"
 
-test_pool_start: "2025-02-24"
-test_pool_end: "2025-03-25"
+test_pool_start: "2025-01-01"
+test_pool_end: "2025-12-31"
 
 pilot_windows:
-  - start: "2025-02-24"
-    end: "2025-03-25"
-
-high_volatility_shock 2025-02-24 2025-03-25 0.03770593705770947
-bull_breakout 2025-04-09 2025-05-08 0.3462727246375974
-bear_drawdown 2025-10-27 2025-11-25 -0.23641637745244226
+  - start: "2025-01-01"
+    end: "2025-12-31"
 
 date_stride: 1
 

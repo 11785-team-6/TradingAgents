@@ -1,6 +1,6 @@
 # Pure vs Hybrid vs Traditional — Combined Comparison
 
-**Evaluation window:** 30 calendar days (dense span 2025-02-24 → 2025-03-25), from reference `signals.csv` in `/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/high_volatility_shock_pure/20260416T235718Z`.
+**Evaluation window:** 30 calendar days (dense span 2025-02-24 → 2025-03-25), from reference `signals.csv` in `/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/high_volatility_shock_pure/20260418T105430Z`.
 
 LLM rows use `agent_metrics.json` (post–`run_eval`). Traditional rows are non-agent forecast baselines sliced to the **same** hourly bars on those dates.
 
@@ -10,9 +10,9 @@ LLM rows use `agent_metrics.json` (post–`run_eval`). Traditional rows are non-
 
 | strategy | cumulative_return | annualized_return | sharpe | sortino | max_drawdown | calmar | excess_cumulative_return | information_ratio | hit_rate | profit_factor |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **LLM Pure** (high_volatility_shock_pure) | -0.1799 | -0.9106 | -4.3848 | -6.4335 | -0.1905 | -4.7801 | -0.0879 | -1.3342 | 0.4452 | 0.8317 |
-| **LLM Hybrid (metrics)** (high_volatility_shock_hybrid) | 0.1053 | 2.3851 | 3.7299 | 7.1270 | -0.0561 | 42.53 | 0.1973 | 2.5246 | 0.4875 | 1.2509 |
-| **LLM Hybrid (signals)** (high_volatility_shock_hybrid_signals) | 0.0129 | 0.1689 | 0.6231 | 0.9793 | -0.1330 | 1.2702 | 0.1049 | 1.3795 | 0.4917 | 1.0354 |
+| **LLM Pure** (high_volatility_shock_pure) | -0.0024 | -0.0290 | 0.2573 | 0.4243 | -0.1525 | -0.1902 | 0.0895 | 0.8696 | 0.4712 | 1.0107 |
+| **LLM Hybrid (metrics)** (high_volatility_shock_hybrid) | 0.2184 | 10.07 | 5.5895 | 10.39 | -0.0674 | 149.5 | 0.3103 | 3.3309 | 0.4925 | 1.3037 |
+| **LLM Hybrid (signals)** (high_volatility_shock_hybrid_signals) | 0.0970 | 2.0875 | 2.4084 | 4.1437 | -0.1434 | 14.56 | 0.1890 | 1.9386 | 0.4833 | 1.1112 |
 
 ## Traditional forecasting baselines (same dates)
 

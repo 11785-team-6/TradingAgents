@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ay-compare
+#SBATCH --job-name=hvs-compare
 #SBATCH -p GPU-shared
 #SBATCH --gres=gpu:v100-16:1
 #SBATCH -t 01:00:00
@@ -12,9 +12,9 @@
 set -euo pipefail
 
 PROJECT_ROOT="/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents"
-PURE_DIR="${PROJECT_ROOT}/outputs/bear_drawdown_pure/20260418T121803Z"
-HYBRID_METRICS_DIR="${PROJECT_ROOT}/outputs/bear_drawdown_hybrid/20260418T114623Z"
-HYBRID_SIGNALS_DIR="${PROJECT_ROOT}/outputs/bear_drawdown_hybrid_signals/20260418T120224Z"
+PURE_DIR="${PROJECT_ROOT}/outputs/high_volatility_shock_pure/20260418T105430Z"
+HYBRID_METRICS_DIR="${PROJECT_ROOT}/outputs/high_volatility_shock_hybrid/20260418T105430Z"
+HYBRID_SIGNALS_DIR="${PROJECT_ROOT}/outputs/high_volatility_shock_hybrid_signals/20260418T105430Z"
 DEEP_ARTIFACTS="${PROJECT_ROOT}/agent_experiment/model_artifacts"
 DEEP_RUN_ID="pilot_2025"
 SYMBOL="BTCUSDT"
@@ -32,6 +32,6 @@ python -m agent_experiment.scripts.run_experiment_comparison \
   --deep-artifacts "${DEEP_ARTIFACTS}" \
   --run-id "${DEEP_RUN_ID}" \
   --symbol "${SYMBOL}" \
-  --output "${PROJECT_ROOT}/outputs/final_comparison"
+  --output "${PROJECT_ROOT}/outputs/high_volatility_final_comparison"
 
-echo "Done. Final report under: ${PROJECT_ROOT}/outputs/final_comparison"
+echo "Done. Final report under: ${PROJECT_ROOT}/outputs/high_volatility_final_comparison"

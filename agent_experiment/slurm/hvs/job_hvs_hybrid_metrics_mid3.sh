@@ -1,21 +1,19 @@
 #!/bin/bash
-#SBATCH --job-name=ay_hybrid_signals
+#SBATCH --job-name=hvs-met-mid3
 #SBATCH -p GPU-shared
 #SBATCH --gres=gpu:v100-32:1
 #SBATCH -t 48:00:00
 #SBATCH -A cis260081p
 #SBATCH --output=/ocean/projects/cis260081p/shared/logs/%x-%j.out
 #
-# Hybrid (signals mode): one LLM decision per calendar day for 2025.
-# Uses model_input_mode=signals (get_model_signals).
-# Edit PROJECT_ROOT / DEEP_RUN_ID / paths below for your PSC account.
+# Hybrid (metrics) - high_volatility_shock window (mid3).
 
 set -euo pipefail
 
 PROJECT_ROOT="/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents"
-CONFIG_PATH="agent_experiment/configs/pilot_daily_2025_hybrid_signals.yaml"
+CONFIG_PATH="agent_experiment/configs/hvs/pilot_hvs_hybrid_metrics_mid3.yaml"
 export CONFIG_PATH
-OLLAMA_PORT=11436
+OLLAMA_PORT=11447
 BACKEND_URL="http://127.0.0.1:${OLLAMA_PORT}/v1"
 OHLCV_PARQUET="${PROJECT_ROOT}/../../deep-trading/data/BTCUSDT_1h.parquet"
 DEEP_RUN_ID="pilot_2025"
@@ -39,29 +37,20 @@ RUNTIME_CONFIG="${SLURM_TMPDIR:-/tmp}/$(basename "${CONFIG_PATH%.yaml}")_${SLURM
 create_runtime_config_with_backend "${CONFIG_PATH}" "${BACKEND_URL}" "${RUNTIME_CONFIG}"
 export CONFIG_PATH="${RUNTIME_CONFIG}"
 
-python -m agent_experiment.scripts.run_pilot \
-  --config "${CONFIG_PATH}" \
-  -v
+python -m agent_experiment.scripts.run_pilot   --config "${CONFIG_PATH}"   -v
 
-OUT_ROOT="$(python - <<'PY'
+OUT_ROOT="$(python - <<'PY2'
 import os
 from agent_experiment.experiment.config import load_config
 c = load_config(os.environ["CONFIG_PATH"])
 print(c.artifacts_dir)
-PY
+PY2
 )"
 AGENT_DIR="$(find "${OUT_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
 echo "AGENT_DIR=${AGENT_DIR}"
 
-python -m agent_experiment.scripts.run_eval \
-  --signals "${AGENT_DIR}/signals.csv" \
-  --data "${OHLCV_PARQUET}" \
-  --output-dir "${AGENT_DIR}"
+python -m agent_experiment.scripts.run_eval   --signals "${AGENT_DIR}/signals.csv"   --data "${OHLCV_PARQUET}"   --output-dir "${AGENT_DIR}"
 
-python -m agent_experiment.scripts.run_compare_range \
-  --agent-dir "${AGENT_DIR}" \
-  --deep-artifacts "${PROJECT_ROOT}/agent_experiment/model_artifacts" \
-  --run-id "${DEEP_RUN_ID}" \
-  --symbol BTCUSDT
+python -m agent_experiment.scripts.run_compare_range   --agent-dir "${AGENT_DIR}"   --deep-artifacts "${PROJECT_ROOT}/agent_experiment/model_artifacts"   --run-id "${DEEP_RUN_ID}"   --symbol BTCUSDT
 
 echo "Done. Artifacts under: ${AGENT_DIR}"

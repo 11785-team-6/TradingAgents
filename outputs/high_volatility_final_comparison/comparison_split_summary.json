@@ -1,0 +1,42 @@
+{
+  "window": "high_volatility_shock",
+  "rows": [
+    {
+      "tier": "best2",
+      "selected_models": [
+        "macd",
+        "xgb_lstm_ensemble"
+      ],
+      "hybrid_metrics_cumret": 0.1560766742660047,
+      "hybrid_metrics_sharpe": 3.551215891900268,
+      "hybrid_signals_cumret": 0.1110886429209268,
+      "hybrid_signals_sharpe": 3.2228121479192744,
+      "json_path": "/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/high_volatility_final_comparison/tiers/best2/comparison_pure_hybrid_traditional.json"
+    },
+    {
+      "tier": "mid3",
+      "selected_models": [
+        "arima_garch",
+        "lstm",
+        "xgboost"
+      ],
+      "hybrid_metrics_cumret": -0.13275845762333416,
+      "hybrid_metrics_sharpe": -3.5440058191798496,
+      "hybrid_signals_cumret": 0.07767844450832162,
+      "hybrid_signals_sharpe": 2.029631341417353,
+      "json_path": "/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/high_volatility_final_comparison/tiers/mid3/comparison_pure_hybrid_traditional.json"
+    },
+    {
+      "tier": "worst2",
+      "selected_models": [
+        "buy_and_hold",
+        "sma_cross"
+      ],
+      "hybrid_metrics_cumret": 0.18035579787087652,
+      "hybrid_metrics_sharpe": 3.923013963047005,
+      "hybrid_signals_cumret": 0.041665891782905806,
+      "hybrid_signals_sharpe": 1.2161463369856056,
+      "json_path": "/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/high_volatility_final_comparison/tiers/worst2/comparison_pure_hybrid_traditional.json"
+    }
+  ]
+}

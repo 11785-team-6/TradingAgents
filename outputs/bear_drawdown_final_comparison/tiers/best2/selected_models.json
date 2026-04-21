@@ -1,0 +1,7 @@
+{
+  "tier": "best2",
+  "models": [
+    "lstm",
+    "sma_cross"
+  ]
+}

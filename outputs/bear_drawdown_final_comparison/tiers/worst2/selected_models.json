@@ -1,0 +1,7 @@
+{
+  "tier": "worst2",
+  "models": [
+    "macd",
+    "buy_and_hold"
+  ]
+}

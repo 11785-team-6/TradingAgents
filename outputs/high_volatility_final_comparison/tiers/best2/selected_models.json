@@ -1,0 +1,7 @@
+{
+  "tier": "best2",
+  "models": [
+    "macd",
+    "xgb_lstm_ensemble"
+  ]
+}

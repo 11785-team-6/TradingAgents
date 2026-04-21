@@ -1,0 +1,7 @@
+{
+  "tier": "worst2",
+  "models": [
+    "buy_and_hold",
+    "sma_cross"
+  ]
+}

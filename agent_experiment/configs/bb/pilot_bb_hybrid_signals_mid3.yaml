@@ -1,6 +1,6 @@
 # Hybrid (signals) - bull_breakout window (mid3, BTC).
 
-experiment_name: "bull_breakout_hybrid_signals_mid3"
+experiment_name: "bb/bull_breakout_hybrid_signals_mid3"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

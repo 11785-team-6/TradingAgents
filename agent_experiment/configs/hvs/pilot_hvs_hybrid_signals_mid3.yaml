@@ -1,6 +1,6 @@
 # Hybrid (signals) - high_volatility_shock window (mid3, BTC).
 
-experiment_name: "high_volatility_shock_hybrid_signals_mid3"
+experiment_name: "hvs/high_volatility_shock_hybrid_signals_mid3"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

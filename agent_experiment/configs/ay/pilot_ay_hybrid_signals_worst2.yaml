@@ -1,6 +1,6 @@
 # Hybrid (signals) - all_year window (worst2, BTC).
 
-experiment_name: "all_year_hybrid_signals_worst2"
+experiment_name: "ay/all_year_hybrid_signals_worst2"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

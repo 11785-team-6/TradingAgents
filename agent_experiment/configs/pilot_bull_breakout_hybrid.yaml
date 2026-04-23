@@ -1,6 +1,6 @@
 # Hybrid (metrics) — bull_breakout window (BTC).
 
-experiment_name: "bull_breakout_hybrid"
+experiment_name: "bb/bull_breakout_hybrid"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

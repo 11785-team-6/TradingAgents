@@ -1,6 +1,6 @@
 # Pure agent — bull_breakout window (BTC).
 
-experiment_name: "bull_breakout_pure"
+experiment_name: "bb/bull_breakout_pure"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

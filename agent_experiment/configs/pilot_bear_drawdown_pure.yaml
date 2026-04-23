@@ -1,6 +1,6 @@
 # Pure agent — bear_drawdown window (BTC).
 
-experiment_name: "bear_drawdown_pure"
+experiment_name: "bd/bear_drawdown_pure"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

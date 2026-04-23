@@ -1,6 +1,6 @@
 # Hybrid (metrics) - all_year window (mid3, BTC).
 
-experiment_name: "all_year_hybrid_metrics_mid3"
+experiment_name: "ay/all_year_hybrid_metrics_mid3"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

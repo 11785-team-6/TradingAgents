@@ -1,6 +1,6 @@
 # Hybrid (signals) — bear_drawdown window (BTC).
 
-experiment_name: "bear_drawdown_hybrid_signals"
+experiment_name: "bd/bear_drawdown_hybrid_signals"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

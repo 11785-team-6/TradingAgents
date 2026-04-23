@@ -15,12 +15,13 @@ DEEP_ARTIFACTS="${PROJECT_ROOT}/agent_experiment/model_artifacts"
 DEEP_RUN_ID="pilot_2025"
 SYMBOL="BTCUSDT"
 
-PURE_ROOT="${PROJECT_ROOT}/outputs/high_volatility_shock_pure"
 WINDOW="high_volatility_shock"
 WINDOW_SHORT="hvs"
-BASE_METRICS_ROOT="${PROJECT_ROOT}/outputs/high_volatility_shock_hybrid"
-BASE_SIGNALS_ROOT="${PROJECT_ROOT}/outputs/high_volatility_shock_hybrid_signals"
-OUTPUT_DIR="${PROJECT_ROOT}/outputs/high_volatility_final_comparison"
+GROUP_ROOT="${PROJECT_ROOT}/outputs/${WINDOW_SHORT}"
+PURE_ROOT="${GROUP_ROOT}/high_volatility_shock_pure"
+BASE_METRICS_ROOT="${GROUP_ROOT}/high_volatility_shock_hybrid"
+BASE_SIGNALS_ROOT="${GROUP_ROOT}/high_volatility_shock_hybrid_signals"
+OUTPUT_DIR="${GROUP_ROOT}/high_volatility_final_comparison"
 
 resolve_single_run_dir() {
   local root_dir="$1"
@@ -70,8 +71,8 @@ BASE_METRICS_DIR="$(resolve_optional_single_run_dir "${BASE_METRICS_ROOT}")"
 BASE_SIGNALS_DIR="$(resolve_optional_single_run_dir "${BASE_SIGNALS_ROOT}")"
 
 for tier in best2 mid3 worst2; do
-  HYBRID_METRICS_ROOT="${PROJECT_ROOT}/outputs/${WINDOW}_hybrid_metrics_${tier}"
-  HYBRID_SIGNALS_ROOT="${PROJECT_ROOT}/outputs/${WINDOW}_hybrid_signals_${tier}"
+  HYBRID_METRICS_ROOT="${GROUP_ROOT}/${WINDOW}_hybrid_metrics_${tier}"
+  HYBRID_SIGNALS_ROOT="${GROUP_ROOT}/${WINDOW}_hybrid_signals_${tier}"
 
   HYBRID_METRICS_DIR="$(resolve_single_run_dir "${HYBRID_METRICS_ROOT}")"
   HYBRID_SIGNALS_DIR="$(resolve_single_run_dir "${HYBRID_SIGNALS_ROOT}")"

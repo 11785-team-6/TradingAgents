@@ -1,6 +1,6 @@
 # Hybrid (metrics) - high_volatility_shock window (worst2, BTC).
 
-experiment_name: "high_volatility_shock_hybrid_metrics_worst2"
+experiment_name: "hvs/high_volatility_shock_hybrid_metrics_worst2"
 
 symbol_agent: "BTC-USD"
 symbol_deep_trading: "BTC/USDT"

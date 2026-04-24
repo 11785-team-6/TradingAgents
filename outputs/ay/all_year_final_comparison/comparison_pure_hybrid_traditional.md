@@ -1,38 +1,41 @@
-# Agent vs Forecasting Models - Same-Calendar Comparison
+# Aggregate Comparison: Pure, Hybrid, and Traditional Strategies
 
-**Evaluation period:** 365 calendar days (dense span from first to last signal date: 2025-01-01 -> 2025-12-31), aligned with  forward-fill.
+**Evaluation window:** 365 calendar days, 2025-01-01 to 2025-12-31.
 
-Forecast strategies are sliced to the **same hourly bars** on those dates; agent aggregate metrics come from  (produced by ).
+Forecast baselines are evaluated on the same hourly bars as the agent runs. Returns, drawdowns, excess return, and hit rate are shown as percentages. Higher is better except for max drawdown, where values closer to zero indicate smaller peak-to-trough losses.
 
----
-
-## Aggregate comparison (agent vs baselines on signal dates)
-
-| strategy | selected models | cumulative_return | annualized_return | sharpe | sortino | max_drawdown | calmar | excess_cumulative_return | information_ratio | hit_rate | profit_factor |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LLM Pure | - | 0.0276 | 0.0277 | 0.2553 | 0.4030 | -0.2488 | 0.1113 | 0.0820 | 0.0598 | 0.4948 | 1.0110 |
-| LLM Hybrid (metrics) | - | -0.1795 | -0.1801 | -0.4817 | -0.7282 | -0.4004 | -0.4498 | -0.1252 | -0.2813 | 0.4959 | 0.9791 |
-| LLM Hybrid (signals) | - | 0.1474 | 0.1479 | 0.6011 | 0.9451 | -0.2403 | 0.6155 | 0.2018 | 0.2033 | 0.5048 | 1.0291 |
-| hybrid_metrics(best2) | lstm, xgboost | -0.1887 | -0.1892 | -0.5053 | -0.7464 | -0.3523 | -0.5372 | -0.1343 | -0.2915 | 0.4966 | 0.9771 |
-| hybrid_signals(best2) | lstm, xgboost | 0.1586 | 0.1591 | 0.6194 | 0.9561 | -0.1999 | 0.7961 | 0.2129 | 0.2162 | 0.4993 | 1.0284 |
-| hybrid_metrics(mid3) | arima_garch, buy_and_hold, xgb_lstm_ensemble | 0.3077 | 0.3089 | 0.9948 | 1.5644 | -0.2627 | 1.1758 | 0.3621 | 0.3842 | 0.4998 | 1.0455 |
-| hybrid_signals(mid3) | arima_garch, buy_and_hold, xgb_lstm_ensemble | -0.1539 | -0.1544 | -0.4636 | -0.6831 | -0.3884 | -0.3975 | -0.0995 | -0.2661 | 0.4989 | 0.9769 |
-| hybrid_metrics(worst2) | macd, sma_cross | -0.2690 | -0.2697 | -0.7526 | -1.1507 | -0.3306 | -0.8158 | -0.2146 | -0.4101 | 0.4920 | 0.9674 |
-| hybrid_signals(worst2) | macd, sma_cross | 0.1515 | 0.1520 | 0.5815 | 0.9139 | -0.3142 | 0.4838 | 0.2058 | 0.2078 | 0.4953 | 1.0252 |
-| arima_garch | - | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0.0544 | -0.1028 | 0.0000 | 0.0000 |
-| buy_and_hold | - | -0.0544 | -0.0546 | 0.1028 | 0.1604 | -0.3475 | -0.1570 | 0.0000 | 0.0000 | 0.5064 | 1.0033 |
-| lstm | - | 0.9257 | 0.9299 | 2.2430 | 3.5727 | -0.1870 | 4.9733 | 0.9801 | 1.3016 | 0.5053 | 1.0981 |
-| macd | - | -0.3741 | -0.3750 | -0.8116 | -1.3338 | -0.4529 | -0.8281 | -0.3197 | -0.6304 | 0.4883 | 0.9739 |
-| sma_cross | - | -0.4401 | -0.4412 | -1.0579 | -1.6294 | -0.5038 | -0.8757 | -0.3857 | -0.7784 | 0.4993 | 0.9662 |
-| xgb_lstm_ensemble | - | 0.0493 | 0.0494 | 0.3700 | 0.5368 | -0.1297 | 0.3812 | 0.1036 | 0.0349 | 0.4996 | 1.0327 |
-| xgboost | - | 0.0493 | 0.0494 | 0.3916 | 0.5617 | -0.0926 | 0.5336 | 0.1036 | 0.0290 | 0.5016 | 1.0375 |
+![Aggregate strategy comparison](aggregate_comparison_graph.png)
 
 ---
 
-## Benchmark reference
-- **Buy-and-hold (signal dates):** cumulative return = -0.0544
+## Headline Readout
 
-## Source files
-- : 
-- : 
-- : 
+| Readout | Result |
+| --- | ---: |
+| Best aggregate LLM input mode | **LLM Hybrid (signals): +14.7%, Sharpe 0.60** |
+| Best non-agent return | **LSTM: +92.6%, Sharpe 2.24** |
+| Best non-agent drawdown | **XGBoost: -9.3% max drawdown** |
+| Buy-And-Hold rule-based reference | **-5.4%, Sharpe 0.10** |
+
+## Agent Strategies
+
+| Strategy | Input set | Cum. return | Ann. return | Sharpe | Sortino | Max DD | Calmar | Excess vs B&H | Info ratio | Hit rate | Profit factor |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| LLM Pure | None | +2.8% | +2.8% | 0.26 | 0.40 | -24.9% | 0.11 | +8.2% | 0.06 | 49.5% | 1.01 |
+| LLM Hybrid (metrics) | All models | -18.0% | -18.0% | -0.48 | -0.73 | -40.0% | -0.45 | -12.5% | -0.28 | 49.6% | 0.98 |
+| LLM Hybrid (signals) | All models | +14.7% | +14.8% | 0.60 | 0.95 | -24.0% | 0.62 | +20.2% | 0.20 | **50.5%** | 1.03 |
+
+## Rule-Based and Forecasting Baselines
+
+| Strategy | Group | Cum. return | Ann. return | Sharpe | Sortino | Max DD | Calmar | Excess vs B&H | Info ratio | Hit rate | Profit factor |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Buy-And-Hold | Rule-based | -5.4% | -5.5% | 0.10 | 0.16 | -34.8% | -0.16 | +0.0% | 0.00 | **50.6%** | 1.00 |
+| SMA | Rule-based | -44.0% | -44.1% | -1.06 | -1.63 | -50.4% | -0.88 | -38.6% | -0.78 | 49.9% | 0.97 |
+| MACD | Rule-based | -37.4% | -37.5% | -0.81 | -1.33 | -45.3% | -0.83 | -32.0% | -0.63 | 48.8% | 0.97 |
+| LSTM | Forecasting model | **+92.6%** | **+93.0%** | **2.24** | **3.57** | -18.7% | **4.97** | **+98.0%** | **1.30** | 50.5% | **1.10** |
+| XGBoost | Forecasting model | +4.9% | +4.9% | 0.39 | 0.56 | **-9.3%** | 0.53 | +10.4% | 0.03 | 50.2% | 1.04 |
+| XGB-LSTM ensemble | Forecasting model | +4.9% | +4.9% | 0.37 | 0.54 | -13.0% | 0.38 | +10.4% | 0.03 | 50.0% | 1.03 |
+
+## Source Files
+
+- `comparison_pure_hybrid_traditional_split.json`

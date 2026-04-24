@@ -1,0 +1,521 @@
+\documentclass{article}
+
+% ready for submission
+% \usepackage{neurips_2019}
+
+% to compile a preprint version, e.g., for submission to arXiv, add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2019}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+\usepackage[final]{neurips_2019}
+
+% to avoid loading the natbib package, add option nonatbib:
+%     \usepackage[nonatbib]{neurips_2019}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+% --- Added for Architecture Figure ---
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
+% -------------------------------------
+
+\title{11-785 Team 6 Final Report}
+
+\author{%
+  Chih-Cheng Hsu \\
+  Carnegie Mellon University\\
+  Moffett Field, CA 94035 \\
+  \texttt{chihcheh@andrew.cmu.edu} \\
+  \And
+  Jie Min \\
+  Carnegie Mellon University\\
+  Moffett Field, CA 94035 \\
+  \texttt{jiemin@andrew.cmu.edu} \\
+  \And
+  Joshua Nee \\
+  Carnegie Mellon University\\
+  Moffett Field, CA 94035 \\
+  \texttt{joshuatn@andrew.cmu.edu} \\
+  \And
+  Yiran Chen \\
+  Carnegie Mellon University\\
+  Moffett Field, CA 94035 \\
+  \texttt{yiranc2@andrew.cmu.edu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This project studies whether large language model (LLM) trading agents perform better when reasoning directly from raw market evidence or when augmented with structured signals from quantitative forecasting models. We built a unified evaluation framework for cryptocurrency trading that places pure-agent, hybrid quant+agent, and traditional forecasting strategies under the same data splits, backtesting assumptions, and performance metrics. Our quantitative layer includes rule-based baselines and forecasting models such as ARIMA/GARCH, LSTM, XGBoost, and an XGB-LSTM ensemble on BTC/USDT. On top of this, we implement a pure multi-agent trading pipeline and a hybrid pipeline in which a model analyst provides historical model metrics or directional signals without lookahead leakage. Across the completed experiments, the quantitative baselines establish strong reference performance, while the pure-agent and hybrid pipelines enable direct comparison of raw-evidence reasoning against model-informed agentic trading. In particular, (TODO: summarize the final headline results, including the best-performing quantitative baseline, the pure-agent performance, and the completed hybrid performance under matched evaluation settings.) Overall, the project contributes a fair comparison framework and a concrete experimental basis for evaluating when structured quantitative inputs help agentic trading systems.
+\end{abstract}
+
+\section{Overview and Context}
+
+\subsection{Motivation and Objectives}
+
+Financial markets, and cryptocurrency markets in particular, are noisy, volatile, and strongly regime-dependent. This makes the trading problem difficult for both conventional forecasting models and large language model (LLM) agents. Pure agent systems are flexible because they can combine different kinds of evidence such as prices, news, and macro context, but that flexibility can also make them unstable and prompt-sensitive. Quantitative models offer more structured signal extraction and clearer risk diagnostics, but they are typically limited to historical market data and may miss important external context. In practice, many trading firms separate the pipeline into a signal extraction layer (quantitative models) and a reasoning and risk control layer (human or automated decision-makers).
+
+This project is motivated by a practical system-design question: should trading agents reason directly from raw market evidence, or should they be assisted by structured outputs from quantitative models? To answer that question meaningfully, the comparison must be fair. Different prompts, different data windows, or different evaluation pipelines can easily dominate the measured outcome. The project therefore focuses not only on building agent pipelines, but also on placing pure-agent, hybrid, and traditional baselines into a matched evaluation setting.
+
+This motivates the following objectives:
+
+\begin{itemize}
+\item \textbf{System Design Goal:}
+Develop a modular trading architecture in which pure-agent, hybrid, and traditional forecasting strategies can be evaluated under the same data inputs, decision schedule, transaction cost assumptions, and performance metrics.
+\item \textbf{Backtesting and Comparison Infrastructure:}
+Build a shared evaluation pipeline, focused on the BTC and ETH trading universe, that converts decisions into comparable portfolio results, supports direct comparison across methods, and aggregates pure-agent, hybrid, and traditional outputs into the same reporting format.
+\item \textbf{Hybrid Performance Investigation:}
+Test whether structured model information improves agent decision-making by introducing a model analyst that provides historical model metrics or directional signals without lookahead leakage.
+\item \textbf{Baseline Validation:}
+Establish strong quantitative reference points by reproducing rule-based and forecasting baselines. Performance is assessed primarily through risk-adjusted metrics.
+\item \textbf{Regime-Based Evaluation:}
+Examine how pure-agent, hybrid, and traditional strategies behave across different market conditions, including full-period evaluation and regime-specific windows such as bull breakout, bear drawdown, and high-volatility segments.
+\end{itemize}
+
+\section{Related Work and Background}
+
+\subsection{Literature Review}
+
+Recent work has explored LLM-based multi-agent systems for trading and portfolio management.
+Xiao et al.\ [1] propose TradingAgents, a framework where specialized LLM agents take on analyst and researcher roles to analyze market information and collaboratively generate trading decisions, outperforming simple rule-based baselines.
+Li et al.\ [2] present an orchestration framework that maps traditional trading components---such as research, risk, and execution---onto coordinated LLM agents, suggesting that structured interfaces between components can substantially stabilize agent behavior.
+In the crypto domain, Luo et al.\ [4] develop an LLM-powered multi-agent system for automated portfolio management, showing that agents can adapt to rapidly changing regimes but are sensitive to prompt design and reward shaping.
+
+In addition to LLM-based approaches, modern quantitative trading relies heavily on advanced financial machine learning techniques. Lopez de Prado [7] established rigorous frameworks for backtesting, cross-validation, and feature engineering in financial markets. Furthermore, deep learning architectures such as DeepLOB [8] have proven highly effective for limit order book forecasting and time-series feature extraction. Our midterm work builds upon these foundational quantitative methods to construct a robust signal extraction layer, providing reliable baselines before deploying complex multi-agent logic.
+
+\subsection{Background}
+
+Our evaluation setup is grounded in standard quantitative finance metrics.
+Following common practice, we track \emph{cumulative return}, \emph{annualized return}, \emph{Sharpe ratio}, and \emph{maximum drawdown} as primary indicators of performance and risk. The Sharpe ratio is formally defined as:
+\[
+Sharpe = \frac{\mathbb{E}[R - R_f]}{\sigma(R)}
+\]
+where $R$ is the strategy return and $R_f$ is the risk-free rate.
+In the cryptocurrency setting we set $R_f = 0$, which is standard practice for short-horizon backtests.
+
+Xiao et al.\ [1] and Li et al.\ [2] both use Sharpe-like risk-adjusted metrics to compare agentic systems against baseline strategies, reinforcing Sharpe ratio as a natural summary of reward--risk trade-offs.
+Maximum drawdown and related drawdown-based indices are emphasized by Singhi [3] and Luo et al.\ [4] as practical measures of capital risk, especially in volatile crypto markets where deep drawdowns can lead to forced liquidation or model shutdown.
+
+\section{Methodology}
+
+\subsection{Model Description}
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.5cm,
+    box/.style={rectangle, draw, rounded corners, text width=4.5cm, align=center, minimum height=0.8cm, font=\small},
+    agentbox/.style={rectangle, draw, dashed, rounded corners, text width=4cm, align=center, minimum height=1.2cm, font=\small, fill=gray!10},
+    arrow/.style={thick,->,>=stealth}
+  ]
+    \node (data) [box] {Raw Market Data (OHLCV)};
+    \node (features) [box, below=0.4cm of data] {Feature Engineering};
+    \node (models) [box, below=0.4cm of features] {Forecast Models (ARIMA, LSTM, XGBoost)};
+    \node (ensemble) [box, below=0.4cm of models] {Signal Ensemble \& Smoothing};
+    \node (backtest) [box, below=0.4cm of ensemble] {Backtesting Engine \& Risk Overlays};
+    \node (metrics) [box, below=0.4cm of backtest] {Trading Metrics \& Artifacts};
+
+    \node (agent) [agentbox, right=1.5cm of ensemble] {LLM Multi-Agent Layer};
+
+    \draw [arrow] (data) -- (features);
+    \draw [arrow] (features) -- (models);
+    \draw [arrow] (models) -- (ensemble);
+    \draw [arrow] (ensemble) -- (backtest);
+    \draw [arrow] (backtest) -- (metrics);
+
+    \draw [arrow, dashed] (models.east) -| (agent.north);
+    \draw [arrow, dashed] (metrics.east) -| (agent.south);
+  \end{tikzpicture}
+  \vspace{0.2cm}
+  \caption{Unified architecture. The quantitative layer (left, solid) establishes robust baselines and generates structured signals. The LLM multi-agent layer (right, dashed) will be integrated in subsequent stages to ingest these signals and additional data sources.}
+  \label{fig:architecture}
+\end{figure}
+
+\subsubsection{Quantitative backtesting framework}
+
+We implement a modular backtesting framework, \texttt{deep-trading}, that separates \emph{feature generation}, \emph{forecasting/alpha modeling}, \emph{signal smoothing and position mapping}, and \emph{risk overlays}. As shown in Figure~\ref{fig:architecture}, this architecture is intentionally designed so that the same backtesting machinery can be reused for agent-driven signals.
+
+\paragraph{Inputs.}
+The system ingests Binance OHLCV data (open, high, low, close, volume) at 1-hour resolution for BTC/USDT and ETH/USDT.
+A feature pipeline constructs technical indicators including returns, volatility estimates, RSI, MACD, ATR, range-based features, and volume-related features.
+Multi-horizon forward returns (\texttt{target\_return\_1h}, \texttt{target\_return\_4h}, \texttt{target\_return\_12h}) are computed as supervised targets.
+
+\paragraph{Forecast-based strategies.}
+We implement several forecasting-based and rule-based strategies:
+\begin{itemize}
+  \item \textbf{ARIMA/GARCH strategy:} Models conditional mean and volatility of returns using classical time-series tools, producing return or sign predictions that are mapped into trading signals.
+  \item \textbf{LSTM strategy:} Uses a sequence model over engineered features and past returns to predict future returns at a chosen horizon.
+  We apply target clipping at extreme quantiles to stabilize training and reduce outlier sensitivity.
+  \item \textbf{XGBoost strategy:} Trains gradient-boosted trees on tabular features, with regime-conditioned submodels for high- and low-volatility periods plus an optional recency-weighted sampling scheme that places more weight on recent data.
+  \item \textbf{XGB--LSTM ensemble:} Combines the XGBoost and LSTM strategies by fitting both on the same training window and computing a Sharpe-like score on the validation window. Let $s_i$ denote the validation Sharpe ratio of model $i$. The ensemble weights $w_i$ are computed as:
+  \[
+  w_i = \frac{\max(s_i,0)}{\sum_j \max(s_j,0)}
+  \]
+  The final combined signal is then formulated as $signal = \sum_i w_i f_i(x)$, where $f_i(x)$ is the base model prediction. This blended signal is passed through a $\tanh$ nonlinearity and optional deadband before being converted to positions.
+  \item \textbf{Rule-based baselines:} Buy-and-hold, SMA crossover, and MACD strategies are implemented as non-agent baselines for sanity checking.
+\end{itemize}
+
+\paragraph{Backtesting engine.}
+A walk-forward routine repeatedly retrains models on a rolling training window and generates signals over subsequent evaluation segments.
+Signals are optionally smoothed via an exponential moving average, converted to discrete long/short/flat positions with a configurable hold threshold, and then passed through risk overlays that control volatility, maximum position size, position step limits, and a drawdown-based kill switch.
+
+\subsubsection{Agentic trading pipeline}
+
+The \textit{pure-agent pipeline} relies entirely on specialized LLM-powered agents to perform market analysis, reasoning, and decision-making. Instead of traditional statistical models generating signals, all interpretations of market data are performed collaboratively by multiple agents that simulate the structure of a real-world trading firm. Each agent focuses on a specific analytical task and produces structured outputs that are passed through a sequential decision pipeline.
+
+\paragraph{Analyst Team}
+
+The first stage of the pipeline consists of an \textbf{Analyst Team} responsible for interpreting raw market information from multiple perspectives.
+
+\begin{itemize}
+    \item \textbf{Fundamental Analyst} evaluates macroeconomic and market-structure indicators (and, for equities, company fundamentals such as earnings and valuation ratios). For cryptocurrency assets such as Bitcoin, this agent focuses on signals like trading activity, realized volatility, and broader risk appetite rather than firm-level financial statements.
+
+    \item \textbf{Sentiment Analyst} analyzes market sentiment derived from social media platforms, financial forums, and investor discussions. Sentiment scoring techniques are used to quantify public perception and short-term market mood.
+
+    \item \textbf{News Analyst} monitors global news, macroeconomic events, and policy changes. This agent interprets how external events such as geopolitical developments or economic reports may influence financial markets.
+
+    \item \textbf{Technical Analyst} examines price time-series data and computes technical indicators such as Moving Average Convergence Divergence (MACD), Relative Strength Index (RSI), and trend patterns to identify potential entry and exit signals.
+\end{itemize}
+
+Each analyst produces a structured report summarizing key observations and signals. These reports collectively represent different perspectives on the current market condition.
+
+\paragraph{Researcher Team}
+
+The outputs of the Analyst Team are then evaluated by the \textbf{Researcher Team}, which consists of both bullish and bearish researchers. The goal of this stage is to critically assess the analysts' findings through structured argumentation.
+
+\begin{itemize}
+    \item \textbf{Bullish Researchers} highlight positive signals and argue for potential upward price movements.
+    \item \textbf{Bearish Researchers} emphasize risks, negative indicators, and possible downside scenarios.
+\end{itemize}
+
+Through debate and cross-validation of evidence, the researchers generate a balanced assessment of market opportunities and risks.
+
+\paragraph{Trader Agent}
+
+The \textbf{Trader Agent} aggregates the analysis and research results to generate a trading proposal. This agent synthesizes insights from multiple sources and determines:
+
+\begin{itemize}
+    \item trading direction (buy, sell, or hold)
+    \item trade timing
+    \item position size
+\end{itemize}
+
+The trader produces a structured trading recommendation accompanied by reasoning derived from the analysts and researchers.
+
+\paragraph{Risk Management and Portfolio Manager}
+
+Before execution, the trading proposal is evaluated by the \textbf{Risk Management Agent}. This agent analyzes portfolio exposure, volatility conditions, and liquidity constraints to ensure that the proposed trade does not violate predefined risk limits.
+
+The final decision is made by the \textbf{Portfolio Manager}, who approves or rejects the proposed transaction. If the trade is approved, the order is forwarded to the execution layer and sent to the simulated exchange environment used in the backtesting system.
+
+\paragraph{Pilot Experiment Setup}
+
+To evaluate the behavior of the pure-agent pipeline, we run the agent system on pre-declared pilot windows selected from the 2025 BTC market. The windows are chosen based on rolling 20-day benchmark metrics to represent different market regimes, including a high-volatility shock period, a bull breakout period, and a bear drawdown period. This regime diversity allows us to observe how the agents behave under different market conditions.
+
+During the pilot experiment, the agent system generates exactly one decision per calendar day. Since cryptocurrency markets operate continuously, each day in the selected window contains valid market data. The agent pipeline is therefore executed once per date. For the agent pilot, we use BTC-USD data from our agent environment, which we treat as equivalent BTC exposure to the BTC/USDT series used by the quantitative backtests.
+
+\paragraph{LLM Configuration}
+
+The agents are powered by local large language models served through the Ollama inference backend. Two models are used to balance reasoning quality and efficiency: a lightweight model (\texttt{qwen3:8b}) for fast reasoning and a larger model (\texttt{qwen3:30b-a3b}) for deeper analysis. The number of debate rounds between agents is kept small to control computational cost while preserving collaborative reasoning behavior.
+
+\paragraph{Backtesting Interface}
+
+The output of the pure-agent pipeline is a daily trading signal. Each decision is represented as a tri-state action (\textit{BUY}, \textit{SELL}, or \textit{HOLD}) and is mapped to numerical trading positions (1, -1, and 0 respectively). These signals are recorded together with metadata such as inference latency and execution status.
+
+The generated signals are then passed to the existing backtesting framework, which simulates trade execution using historical BTC price data. The backtesting system evaluates the resulting portfolio performance and enables direct comparison with baseline forecasting models.
+
+
+\subsubsection{Hybrid Model--Agent Pipeline}
+
+In the hybrid pipeline, traditional forecasting models are integrated with the agent system. Each forecasting model is first configured with metadata describing its strengths and limitations. For example, certain models may perform well in detecting short-term momentum, while others may capture longer-term market trends. However, these models typically rely only on historical price data, which means they lack access to external contextual information such as news events or social media sentiment.
+
+To address these drawbacks, an agent layer is introduced on top of the forecasting models. The forecasting models generate structured outputs, including directional signals (buy/sell/hold), confidence scores, and summary statistics describing predicted market conditions. These outputs are then interpreted by the agents together with additional information sources such as news and sentiment data. By incorporating these external signals, the agents can adjust or refine the model predictions and generate more informed trading decisions.
+
+\subsubsection{Information Flow and Backtesting Interface}
+
+The overall information flow in the system follows a layered structure. Market data and model outputs are first processed by the analyst agents. Their results are debated by the researcher agents, and the trader agent then produces the final trading recommendation. The output of the system is a daily tri-state decision (BUY, SELL, or HOLD).
+
+To evaluate performance, the agent outputs are converted into numerical trading positions (1 for BUY, -1 for SELL, and 0 for HOLD) and passed to the existing backtesting engine. The backtesting system executes the trades using historical price data and records portfolio performance metrics for comparison with baseline forecasting models.
+
+\subsection{Dataset}
+
+\subsubsection{Quantitative dataset}
+
+Our experiments use a liquid cryptocurrency universe constructed from Binance spot trading data:
+\begin{itemize}
+  \item \textbf{Assets and frequency:} BTC/USDT and ETH/USDT at 1-hour intervals.
+  \item \textbf{Time window:} Configuration defaults target a window from 2015-01-01 to 2025-12-31, with the effective start date determined by exchange data availability.
+  \item \textbf{Data ingestion and storage:} Data are collected via the CCXT interface from Binance, with automatic fallback to Binance US in restricted environments, and standardized into a unified OHLCV format.
+  \item \textbf{Feature preparation:} The feature pipeline computes log returns, realized volatility measures, momentum and oscillators (e.g., RSI, MACD), ATR and trading range measures, and volume-based indicators.
+  Multi-horizon forward returns are generated as supervised learning targets, and the resulting feature table is aligned with the backtesting configuration (train/validation/test splits and walk-forward retraining cadence).
+\end{itemize}
+This dataset and preprocessing stack are shared across all forecasting-based strategies, ensuring that performance differences are attributable to model behavior rather than data leakage or inconsistent splits.
+
+\subsubsection{Additional data for agents}
+
+To support richer market reasoning beyond raw price signals, the agent framework is designed to incorporate several additional data sources, including market news, social media sentiment, and fundamental or macro-related information. These auxiliary inputs are intended to complement the analysts' reasoning process and improve the quality of daily trading decisions generated for the pilot BTC-USD experiments.
+
+\subsubsection*{News Data}
+
+News data will be used primarily by the \textbf{News Analyst} agent to capture event-driven market movements. Relevant sources may include financial news headlines, crypto-specific news feeds, and major macroeconomic announcements that could affect Bitcoin price behavior. Since news articles are typically unstructured and high-volume, preprocessing is required before they can be passed to the agent pipeline.
+
+The planned preprocessing steps include:
+\begin{itemize}
+    \item filtering articles by asset relevance (e.g., Bitcoin, crypto market, U.S. macro events),
+    \item removing duplicated or near-duplicated headlines,
+    \item extracting publication timestamps and aligning them to the corresponding calendar day,
+    \item truncating or summarizing long articles into compact text snippets,
+    \item optionally converting multiple same-day articles into a daily aggregated news summary.
+\end{itemize}
+
+This preprocessing ensures that the agent receives concise and date-aligned information instead of raw noisy text streams.
+
+\subsubsection*{Social Media Sentiment}
+
+Social media sentiment is planned as an additional input for the \textbf{Sentiment Analyst} agent. Potential sources include public discussions from platforms such as X/Twitter, Reddit, or other crypto-related forums. These signals are particularly useful for Bitcoin trading because short-term crypto price movements are often influenced by market mood, retail speculation, and viral narratives.
+
+The preprocessing pipeline for sentiment data will include:
+\begin{itemize}
+    \item collecting posts within each pilot window on a per-day basis,
+    \item filtering spam, bot-like, or irrelevant posts,
+    \item normalizing text by removing URLs, emojis, hashtags, and repeated tokens when necessary,
+    \item applying sentiment scoring or polarity classification,
+    \item aggregating individual post-level signals into daily sentiment summaries or sentiment scores.
+\end{itemize}
+
+The resulting processed sentiment features can then be passed to the Sentiment Analyst agent as structured evidence describing the overall bullish, bearish, or neutral mood of the market for a given date.
+
+\subsubsection*{Fundamental and Macro-Related Data}
+
+For traditional equities, the \textbf{Fundamentals Analyst} would typically use company financial statements and valuation ratios. However, since the pilot experiment focuses on \texttt{BTC-USD}, fundamental inputs are interpreted more broadly as \textbf{macro-related and market-structure indicators} rather than firm-level financial metrics.
+
+Planned inputs may include:
+\begin{itemize}
+    \item market-wide indicators such as trading volume and realized volatility,
+    \item macroeconomic variables that may affect crypto risk appetite,
+    \item on-chain or ecosystem-level signals if available,
+    \item benchmark market summaries describing recent returns and regime characteristics.
+\end{itemize}
+
+The preprocessing of such data will include temporal alignment, missing-value handling, normalization of numerical scales, and transformation into compact daily summaries that are easy for the agents to interpret.
+
+\subsubsection*{Daily Alignment for Pilot Windows}
+
+Because the pilot runner generates exactly one trading decision per calendar day, all additional data sources must be aligned to the same daily frequency. For each date in the selected pilot windows, the preprocessing stage will aggregate all available auxiliary information into a daily evidence package. This package will then be supplied to the relevant analyst agents before debate and decision generation.
+
+In the current pilot design, the selected analysts are \texttt{market}, \texttt{news}, and \texttt{fundamentals}. Therefore, the preprocessing layer is planned to produce date-specific structured inputs for these agents without modifying the original TradingAgents or deep-trading code. All extensions are additive and operate externally through the existing public pipeline interface.
+
+\subsubsection*{Output Interface}
+
+After preprocessing, the additional data will be transformed into agent-readable summaries rather than passed in raw form. For each date, the processed inputs will support the generation of one tri-state daily decision: \texttt{BUY}, \texttt{SELL}, or \texttt{HOLD}, which is then mapped to positions $1$, $-1$, and $0$ respectively for comparison with the deep-trading forecasting baselines.
+
+This design keeps the data interface simple, reproducible, and compatible with the existing backtesting-oriented pilot runner.
+\subsection{Evaluation Metric}
+
+For both baselines and forecasting-based models, we evaluate performance using:
+\begin{itemize}
+  \item \textbf{Cumulative return (CR):} The final equity relative to the initial capital over the evaluation window.
+  \item \textbf{Annualized return (ARR):} The average compounded growth rate, annualized based on the number of bars per year.
+  \item \textbf{Sharpe ratio (SR):} Mean excess return divided by return standard deviation, annualized.
+  This serves as our primary risk-adjusted performance measure and is directly comparable across strategies and configurations.
+  \item \textbf{Maximum drawdown (MDD):} The worst peak-to-trough decline in equity, capturing tail risk and capital loss potential.
+\end{itemize}
+In addition, the framework computes secondary metrics such as annualized volatility, downside volatility, Sortino ratio, Calmar ratio, Value-at-Risk and Conditional VaR at 95\%, ulcer index, turnover, hit rate, and benchmark-relative metrics.
+These are useful for diagnosing behavior differences between models and will later be exposed as structured inputs to the agentic pipeline.
+
+\subsection{Loss Function}
+
+For the forecasting-based strategies implemented so far:
+
+\begin{itemize}
+  \item \textbf{LSTM:} The LSTM strategy is trained to predict forward returns using a robust regression loss, implemented as PyTorch's \texttt{HuberLoss}, applied to clipped target returns. This choice reduces the influence of extreme outliers in the heavy-tailed crypto return distribution.
+  \item \textbf{XGBoost:} The XGBoost strategy is trained with the \texttt{reg:squarederror} objective, i.e., a standard squared-error regression loss on forward returns, with optional recency-based sample weighting.
+  \item \textbf{ARIMA/GARCH:} The ARIMA and GARCH components are estimated via maximum likelihood, effectively minimizing negative log-likelihood over the conditional mean and volatility dynamics of returns.
+\end{itemize}
+
+\subsection{Experimental Depth and Iteration}
+
+So far, we have conducted multiple iterations of experiments at two levels:
+\begin{itemize}
+  \item \textbf{Pilot experiments (reduced scope):}
+  We ran multiple strategies including buy-and-hold, SMA crossover, MACD, ARIMA/GARCH, LSTM, XGBoost, and the XGB--LSTM ensemble.
+  These pilot runs were used to debug the data pipeline, verify that metrics behaved sensibly (assuming zero transaction costs), and tune basic hyperparameters such as walk-forward retraining frequency, signal smoothing span, and hold threshold.
+  \item \textbf{Full-universe experiments (BTC + ETH, extended horizon):}
+  We then scaled up to a universe-level evaluation where BTC and ETH are both included.
+  For each symbol, we ran the full set of strategies and aggregated performance at both per-strategy and universe levels using the built-in comparison tools.
+  These full runs serve as our current baselines and demonstrate that the framework can handle multi-asset, multi-strategy backtests with consistent configuration.
+
+  \item \textbf{Pure-agent pilot experiments:} In addition to the quantitative baselines, we conducted pilot experiments using the pure-agent trading pipeline. The agent system was evaluated on BTC-USD across three predefined pilot windows (60 total trading days) selected to represent different market regimes, including a high-volatility shock period, a bull breakout period, and a bear drawdown period. For each calendar day, the agent framework generates a tri-state trading decision (BUY, SELL, or HOLD), which is mapped to numerical positions (1, $-1$, or 0) and evaluated using the same backtesting framework as the quantitative strategies. The results show that, on these pilot windows, the pure-agent pipeline achieves the highest Sharpe ratio among the evaluated strategies and performs particularly well during bearish market regimes. These experiments also validate the integration between the agent decision pipeline and the existing backtesting infrastructure, providing the basis for future hybrid model–agent experiments.
+
+\end{itemize}
+
+\section{Baseline and Extensions}
+
+\subsection{Baseline Selection and Evaluation}
+
+We implement and evaluate several non-agent baselines:
+\begin{itemize}
+  \item \textbf{Buy-and-hold baseline:} Always holding a unit notional long position in the underlying spot asset.
+  This serves as a sanity check against which all active strategies must be compared in terms of both absolute and risk-adjusted returns.
+  \item \textbf{Technical rule-based baselines:} SMA crossover and MACD strategies represent classic technical rules that introduce timing and higher turnover relative to buy-and-hold.
+  \item \textbf{Forecasting-based baselines:} ARIMA/GARCH, LSTM, and XGBoost strategies are treated as stronger modeling baselines that reflect modern quantitative practice.
+\end{itemize}
+We evaluate these baselines using the shared metrics described above, ensuring that all strategies are tested on the same assets, time periods, and transaction cost assumptions.
+
+\subsection{Implemented Extensions and Experiments}
+
+On top of the basic baselines, our midterm work already includes several extensions:
+\begin{itemize}
+  \item Walk-forward training with validation windows to approximate a realistic research workflow and reduce look-ahead bias.
+  \item Signal smoothing and ternary position mapping (long/flat/short) to stabilize trading behavior and reduce excessive turnover.
+  \item Regime-conditioned XGBoost with separate models for high- and low-volatility regimes plus a global fallback, encouraging specialization.
+  \item XGB--LSTM ensemble with validation-based Sharpe weighting, intended to combine the complementary strengths of tree-based and sequence models.
+  \item Risk overlays including volatility targeting, maximum position constraints, position step limits, and a drawdown kill switch.
+\end{itemize}
+These extensions primarily operate at the quantitative modeling layer and will later be contrasted with agent-based extensions (e.g., adding an LLM risk controller).
+
+As a planned extension, the agent framework will incorporate outputs from the forecasting models and use them as structured inputs for the decision-making process. In particular, the agent will process three levels of forecasting outputs: the directional signal (\textit{buy}, \textit{sell}, or \textit{hold}), the associated confidence score, and summary statistics describing recent model performance or market conditions. The directional signal will provide the primary trading recommendation, while the confidence score will indicate the reliability of the forecast and influence position sizing. Summary statistics, such as recent return trends or volatility measures, will provide contextual information that helps the agent evaluate the broader market regime. The trader agent will aggregate these inputs together with insights from analyst agents (e.g., market, news, and fundamentals) and generate a final daily trading decision. The final output will remain a tri-state decision (\textit{BUY}, \textit{SELL}, or \textit{HOLD}), which is then mapped to positions $1$, $-1$, and $0$ respectively for integration with the pilot backtesting pipeline.
+
+\subsection{Baseline Reproduction Evidence}
+
+We use the artifacts generated by the backtesting engine---metrics tables, equity curves, and trade logs---to confirm that the baselines are correctly implemented:
+\begin{itemize}
+  \item For each strategy and symbol, the engine saves \texttt{backtest.csv}, \texttt{trades.csv}, \texttt{metrics.json}, and \texttt{metrics.csv}, as well as equity and signal/position plots.
+  \item A comparison module aggregates per-strategy metrics into \texttt{summary\_metrics.csv} and \texttt{summary\_metrics.json}, along with multi-strategy equity comparison plots.
+  \item Universe-level runs produce \texttt{universe\_metrics} and \texttt{strategy\_aggregate} files that summarize how each strategy performs across BTC and ETH.
+\end{itemize}
+These outputs show that our baselines and forecasting models are being evaluated under a unified configuration, and they provide the quantitative reference points that future agentic pipelines must match or exceed.
+
+\section{Results and Analysis}
+
+\subsection{Results}
+
+At this midterm stage, our focus is on validating the backtesting framework and establishing stable baselines, rather than aggressively optimizing performance.
+Across pilot and full-universe runs, the implemented strategies produce diverse equity curves and risk profiles consistent with their design: buy-and-hold tracks the underlying asset with full exposure, rule-based technical strategies introduce timing and higher turnover, and forecasting-based models generate more dynamic, sometimes leveraged, exposure paths.
+
+Table~\ref{tab:results} summarizes actual results from our full-scale backtesting experiments, demonstrating that the framework successfully captures empirical trade-offs between reward and risk.
+
+\begin{table}[h]
+\centering
+\caption{Backtesting Strategy Performance on BTC}
+\label{tab:results}
+\begin{tabular}{lccc}
+\toprule
+Strategy & Annual Return & Sharpe & Max Drawdown \\
+\midrule
+Buy and Hold        & 0.75 & 1.44 & -0.35 \\
+SMA Crossover       & 0.14 & 0.51 & -0.61 \\
+XGBoost             & 0.83 & 1.54 & -0.36 \\
+LSTM                & 0.27 & 0.76 & -0.46 \\
+XGB-LSTM Ensemble   & 0.82 & 1.52 & -0.31 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The empirical results reveal a common phenomenon in cryptocurrency quantitative research: the Buy and Hold strategy serves as a highly formidable baseline due to the strong upward drift of BTC (Sharpe 1.44). Simple rule-based trend-following strategies such as SMA Crossover severely underperform and suffer deep drawdowns (-0.61) in choppy, non-trending regimes. However, our results suggest that forecasting-based models, in particular XGBoost (Sharpe 1.54), have the potential to edge out Buy and Hold in risk-adjusted performance. While sequence models such as LSTM and the ensemble currently lag behind pure tree-based methods, they still provide significantly smoother equity curves than simple technical rules. These realistic quant baselines give us a solid foundation to evaluate whether future LLM agents can further improve regime adaptation.
+
+In a separate set of pilot experiments on BTC-USD across three predefined market regimes, we compare the performance of the pure-agent pipeline with several quantitative forecasting models. On these pilot windows, the pure-agent strategy achieves strong risk-adjusted performance, with a cumulative return of +24.77\% and the highest Sharpe ratio (3.22) among all evaluated strategies. In particular, the agent performs well during market downturns, significantly outperforming the benchmark during bearish periods. However, it underperforms the market during strong bull runs, suggesting that the current pure-agent approach may be relatively conservative in highly trending markets. In comparison, on these same pilot windows, machine-learning-based models such as the XGB-LSTM ensemble achieve higher cumulative returns but lower Sharpe ratios. To address the limitations of both approaches, future work will explore a hybrid pipeline that combines forecasting model outputs with agent-based reasoning, allowing agents to incorporate external contextual information such as news and social media sentiment to refine trading decisions.
+
+\subsection{Error and Failure Case Analysis}
+
+During development, we observed several failure modes that informed our design choices:
+\begin{itemize}
+  \item \textbf{Model instability from extreme returns:} Early LSTM experiments without target clipping were sensitive to rare but extreme returns, which degraded generalization.
+  Clipping the target distribution at high quantiles improved stability without materially changing typical-day behavior.
+  \item \textbf{Overfitting in static splits:} Using a single static train/test split made some models overly optimistic on the test window.
+  Walk-forward retraining with sliding validation windows mitigated this and produced more realistic performance patterns.
+\end{itemize}
+These issues highlight the importance of careful data handling and evaluation design before adding more complex agent logic.
+
+\subsection{Sensitivity and Ablation Analysis}
+
+Although we have not yet performed a full-scale ablation study, our initial experiments include several sensitivity checks:
+\begin{itemize}
+  \item \textbf{Signal smoothing span:} Varying the EMA span used to smooth raw model signals reveals a clear trade-off between responsiveness and turnover-driven costs.
+  Shorter spans respond faster but lead to more frequent trades; longer spans stabilize equity at the cost of delayed reactions.
+  \item \textbf{Hold threshold and position discretization:} Tightening the hold threshold (encouraging more flat positions) can reduce drawdown and turnover, but may also sacrifice return in strong trends.
+  This sensitivity is visible in the metrics and informs how conservative we make the default settings.
+  \item \textbf{Risk overlay parameters:} Adjusting volatility targets, maximum position sizes, and the drawdown kill-switch threshold changes the shape of equity curves and the tail of the drawdown distribution, confirming that the risk controls behave as intended.
+\end{itemize}
+These preliminary observations will guide more systematic ablation studies once agent pipelines are integrated.
+
+\section{Discussion}
+
+So far, our main challenge has been engineering a backtesting framework that is both flexible enough for future agentic experiments and strict enough to avoid hidden look-ahead or configuration drift.
+Ensuring consistent data splits, transaction cost assumptions, and metric definitions across multiple strategies required several iterations of design and refactoring.
+Another challenge is balancing model complexity and training cost: deep models like LSTMs and ensembles can be expensive to train over a decade of hourly data, which constrains how many hyperparameter configurations we can realistically explore.
+Finally, designing the interface between quantitative models and future agents---deciding exactly what signals, risk diagnostics, and portfolio recommendations to expose---requires careful thought to avoid information leakage while still giving agents enough structure to reason effectively.
+
+\section{Future Directions}
+
+Looking ahead, we plan three main next steps:
+\begin{itemize}
+  \item \textbf{Integrate pure-agent and hybrid ``models~+~agents'' pipelines:} Implement LLM-based agents for fundamental, sentiment, and technical analysis; define bull and bear researcher roles; and connect their outputs to the existing backtesting engine.
+  \item \textbf{Run controlled comparisons and ablations:} Evaluate pure agent, pure quantitative, and hybrid pipelines under matched configurations. Specifically, we will conduct information exposure ablations by varying the forecasting model's outputs to the agent across three complexity levels: (1) discrete signals (\emph{buy/sell/hold}), (2) signal distributions (\emph{confidence of buy/sell/hold}), and (3) comprehensive distributions (\emph{summary statistics}).
+  \item \textbf{Refine models and risk controls:} Based on initial comparative results, iterate on both the forecasting models (e.g., additional architectures, improved hyperparameters) and the risk overlay parameters to better understand where traditional models and agents each add the most value, and formally test if the hybrid approach strictly dominates the maximum performance of independent pure models.
+\end{itemize}
+
+\subsubsection*{Team Contributions}
+
+Chih-Cheng Hsu: Data collection, evaluation metrics, and backtesting configuration; drafting of the midterm report.
+
+Jie Min: Multi-agent system design and architecture planning; coordination of future agentic pipeline implementation.
+
+Joshua Nee: Quantitative model development (ARIMA/GARCH, LSTM, XGBoost, ensemble) and backtesting framework implementation.
+
+Yiran Chen: Experimental setup, preprocessing pipeline, and exploratory performance analysis.
+
+All authors: Literature review, experimental design discussions, and report writing.
+
+\subsubsection*{GitHub}
+
+All code and experiments are available at:
+\url{https://github.com/11785-team-6/deep-trading}
+
+\section*{References}
+
+\small
+
+[1] Xiao, Y., Sun, E., Luo, D., \& Wang, W.\ (2024).
+TradingAgents: Multi-agents LLM financial trading framework.
+arXiv preprint arXiv:2412.20138.
+
+[2] Li, J., Grover, A., Alpuerto, A., Cao, Y., \& Liu, X.-Y.\ (2025).
+Orchestration Framework for Financial Agents: From Algorithmic Trading to Agentic Trading.
+arXiv preprint arXiv:2512.02227.
+
+[3] Singhi, A.\ (2025).
+An adaptive multi-agent Bitcoin trading system.
+arXiv preprint arXiv:2510.08068.
+
+[4] Luo, Y., Feng, Y., Xu, J., Tasca, P., \& Liu, Y.\ (2025).
+LLM-powered multi-agent system for automated crypto portfolio management.
+arXiv preprint arXiv:2501.00826.
+
+[5] Song, Z., Song, K, Hu, G., Qi, D., Gao, J., Wang, X., Li, D., \& Zhao, C.\ (2025).
+Trade in minutes! Rationality-driven agentic system for quantitative financial trading.
+arXiv preprint arXiv:2510.04787.
+
+[6] Xiong, F., Zhang, X., Feng, A., Sun, S., \& You, C.\ (2025).
+QuantAgent: Price-driven multi-agent LLMs for high-frequency trading.
+arXiv preprint arXiv:2509.09995.
+
+[7] Lopez de Prado, M.\ (2018).
+Advances in financial machine learning.
+John Wiley \& Sons.
+
+[8] Zhang, Z., Zohren, S., \& Roberts, S.\ (2019).
+DeepLOB: Deep convolutional neural networks for limit order books.
+IEEE Transactions on Signal Processing, 67(11), 3001--3012.
+
+\end{document}

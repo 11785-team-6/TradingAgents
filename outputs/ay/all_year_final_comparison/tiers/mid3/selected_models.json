@@ -1,0 +1,8 @@
+{
+  "tier": "mid3",
+  "models": [
+    "arima_garch",
+    "buy_and_hold",
+    "xgb_lstm_ensemble"
+  ]
+}

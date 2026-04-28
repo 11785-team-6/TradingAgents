@@ -1,0 +1,113 @@
+{
+  "aggregate": {
+    "cumulative_return": 0.1473941599377393,
+    "annualized_return": 0.147917916317319,
+    "annualized_volatility": 0.3084839760125957,
+    "downside_volatility_annualized": 0.1962159237889677,
+    "sharpe": 0.6011447929666192,
+    "sortino": 0.9450993187130818,
+    "max_drawdown": -0.240316011807147,
+    "calmar": 0.6155141940189268,
+    "var_95": -0.004360562376485833,
+    "cvar_95": -0.007847638908672508,
+    "ulcer_index": 0.1481437119212215,
+    "time_under_water_ratio": 0.9894700698180153,
+    "benchmark_cumulative_return": -0.05437540106952532,
+    "benchmark_annualized_return": -0.05455087017255189,
+    "excess_cumulative_return": 0.20176956100726462,
+    "tracking_error_annualized": 0.6832743773206015,
+    "information_ratio": 0.20327231635583415,
+    "turnover_mean": 0.022662241043836556,
+    "turnover_annualized": 198.65720499027125,
+    "hit_rate": 0.5047892720306514,
+    "avg_holding_bars": 42.18181818181818,
+    "profit_factor": 1.0290791793886402,
+    "regimes": {
+      "high_vol": {
+        "cumulative_return": -0.048564580635784727,
+        "annualized_return": -0.1533789182076527,
+        "annualized_volatility": 0.4502148118207354,
+        "sharpe": -0.14531948906463235,
+        "sortino": -0.23095588690804708,
+        "max_drawdown": -0.24536914983588798,
+        "calmar": -0.6250945496214102,
+        "cvar_95": -0.011537813788419525
+      },
+      "low_vol": {
+        "cumulative_return": 0.20596115783084046,
+        "annualized_return": 0.30789901441599765,
+        "annualized_volatility": 0.22153049427795699,
+        "sharpe": 1.3224037533531525,
+        "sortino": 2.0697366784748183,
+        "max_drawdown": -0.11437208951822042,
+        "calmar": 2.692081745756221,
+        "cvar_95": -0.0058362901449378465
+      }
+    },
+    "diagnostics": {
+      "total_bars": 8737,
+      "fraction_long": 0.035710198008469723,
+      "fraction_short": 0.4422570676433558,
+      "fraction_flat": 0.5220327343481744,
+      "flip_count": 187
+    }
+  },
+  "per_window": [
+    {
+      "cumulative_return": 0.1473941599377393,
+      "annualized_return": 0.147917916317319,
+      "annualized_volatility": 0.3084839760125957,
+      "downside_volatility_annualized": 0.1962159237889677,
+      "sharpe": 0.6011447929666192,
+      "sortino": 0.9450993187130818,
+      "max_drawdown": -0.240316011807147,
+      "calmar": 0.6155141940189268,
+      "var_95": -0.004360562376485833,
+      "cvar_95": -0.007847638908672508,
+      "ulcer_index": 0.1481437119212215,
+      "time_under_water_ratio": 0.9894700698180153,
+      "benchmark_cumulative_return": -0.05437540106952532,
+      "benchmark_annualized_return": -0.05455087017255189,
+      "excess_cumulative_return": 0.20176956100726462,
+      "tracking_error_annualized": 0.6832743773206015,
+      "information_ratio": 0.20327231635583415,
+      "turnover_mean": 0.022662241043836556,
+      "turnover_annualized": 198.65720499027125,
+      "hit_rate": 0.5047892720306514,
+      "avg_holding_bars": 42.18181818181818,
+      "profit_factor": 1.0290791793886402,
+      "regimes": {
+        "high_vol": {
+          "cumulative_return": -0.048564580635784727,
+          "annualized_return": -0.1533789182076527,
+          "annualized_volatility": 0.4502148118207354,
+          "sharpe": -0.14531948906463235,
+          "sortino": -0.23095588690804708,
+          "max_drawdown": -0.24536914983588798,
+          "calmar": -0.6250945496214102,
+          "cvar_95": -0.011537813788419525
+        },
+        "low_vol": {
+          "cumulative_return": 0.20596115783084046,
+          "annualized_return": 0.30789901441599765,
+          "annualized_volatility": 0.22153049427795699,
+          "sharpe": 1.3224037533531525,
+          "sortino": 2.0697366784748183,
+          "max_drawdown": -0.11437208951822042,
+          "calmar": 2.692081745756221,
+          "cvar_95": -0.0058362901449378465
+        }
+      },
+      "diagnostics": {
+        "total_bars": 8737,
+        "fraction_long": 0.035710198008469723,
+        "fraction_short": 0.4422570676433558,
+        "fraction_flat": 0.5220327343481744,
+        "flip_count": 187
+      },
+      "window_idx": 0,
+      "window_start": "2025-01-01",
+      "window_end": "2025-12-31"
+    }
+  ]
+}

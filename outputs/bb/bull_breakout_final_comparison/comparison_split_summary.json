@@ -1,0 +1,42 @@
+{
+  "window": "bull_breakout",
+  "rows": [
+    {
+      "tier": "best2",
+      "selected_models": [
+        "buy_and_hold",
+        "lstm"
+      ],
+      "hybrid_metrics_cumret": -0.17709108633868642,
+      "hybrid_metrics_sharpe": -6.712557588308283,
+      "hybrid_signals_cumret": -0.1034518682125849,
+      "hybrid_signals_sharpe": -5.289079361959638,
+      "json_path": "/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/bull_breakout_final_comparison/tiers/best2/comparison_pure_hybrid_traditional.json"
+    },
+    {
+      "tier": "mid3",
+      "selected_models": [
+        "sma_cross",
+        "macd",
+        "arima_garch"
+      ],
+      "hybrid_metrics_cumret": -0.16271351921053323,
+      "hybrid_metrics_sharpe": -7.945400277628741,
+      "hybrid_signals_cumret": -0.06417449545338849,
+      "hybrid_signals_sharpe": -2.3822964702989906,
+      "json_path": "/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/bull_breakout_final_comparison/tiers/mid3/comparison_pure_hybrid_traditional.json"
+    },
+    {
+      "tier": "worst2",
+      "selected_models": [
+        "xgb_lstm_ensemble",
+        "xgboost"
+      ],
+      "hybrid_metrics_cumret": -0.19433897855258664,
+      "hybrid_metrics_sharpe": -7.223673891642319,
+      "hybrid_signals_cumret": -0.07373832746882247,
+      "hybrid_signals_sharpe": -3.30921735818081,
+      "json_path": "/ocean/projects/cis260081p/chsu11/hybrid/TradingAgents/outputs/bull_breakout_final_comparison/tiers/worst2/comparison_pure_hybrid_traditional.json"
+    }
+  ]
+}

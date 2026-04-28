@@ -1,0 +1,7 @@
+{
+  "tier": "best2",
+  "models": [
+    "buy_and_hold",
+    "lstm"
+  ]
+}

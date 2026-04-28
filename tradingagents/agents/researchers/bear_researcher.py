@@ -15,7 +15,11 @@ def create_bear_researcher(llm, memory):
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
 
+        model_report = state.get("model_report", "")
+
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
+        if model_report:
+            curr_situation += f"\n\n{model_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
 
         past_memory_str = ""
@@ -23,6 +27,8 @@ def create_bear_researcher(llm, memory):
             past_memory_str += rec["recommendation"] + "\n\n"
 
         prompt = f"""You are a Bear Analyst making the case against investing in the stock. Your goal is to present a well-reasoned argument emphasizing risks, challenges, and negative indicators. Leverage the provided research and data to highlight potential downsides and counter bullish arguments effectively.
+
+CRITICAL: You must ONLY base your analysis on the reports and data provided below. Do NOT use any knowledge from your training data about market prices, historical events, or asset performance.
 
 Key points to focus on:
 
@@ -39,6 +45,7 @@ Social media sentiment report: {sentiment_report}
 Latest world affairs news: {news_report}
 Company fundamentals report: {fundamentals_report}
 Conversation history of the debate: {history}
+Model performance report: {model_report}
 Last bull argument: {current_response}
 Reflections from similar situations and lessons learned: {past_memory_str}
 Use this information to deliver a compelling bear argument, refute the bull's claims, and engage in a dynamic debate that demonstrates the risks and weaknesses of investing in the stock. You must also address reflections and learn from lessons and mistakes you made in the past.

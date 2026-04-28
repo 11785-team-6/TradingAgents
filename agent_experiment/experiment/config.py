@@ -52,16 +52,43 @@ class ExperimentConfig:
     artifacts_dir: str = "outputs"
     max_retries: int = 3
 
+    # Hybrid only: path to deep-trading artifacts root (…/model_artifacts). When
+    # set and "model" is in selected_analysts, the pilot runner configures the
+    # get_model_metrics tool before building the graph.
+    deep_trading_artifacts_dir: str | None = None
+
+    # Hybrid Model analyst: "metrics" = historical performance summary;
+    # "signals" = per-strategy BUY/SELL/HOLD from last bar before trade date.
+    model_input_mode: str = "metrics"
+
+    # Subfolders under <run_id>/<SYMBOL>/… to query (default: full baseline set).
+    model_strategies: list[str] | None = None
+    # Optional fixed run folder under deep_trading_artifacts_dir; when set,
+    # model tools only read this run to prevent accidental cross-run mixing.
+    deep_trading_run_id: str | None = None
+
+    # Optional label stored in metadata.json (e.g. daily_2025_pure).
+    experiment_name: str | None = None
+
+    # Run propagate every Nth calendar day within each pilot window (1 = daily).
+    date_stride: int = 1
+
     # LlamaCpp-specific (optional)
     local_model_path_deep: str | None = None
     local_model_path_quick: str | None = None
     local_n_gpu_layers: int = -1
     local_n_ctx: int = 4096
 
+    def dates_for_window(self, w: PilotWindow) -> list[date]:
+        """Calendar dates in ``w`` sampled every ``date_stride`` days (first day always)."""
+        dl = w.date_list()
+        step = max(1, int(self.date_stride))
+        return dl[::step]
+
     def all_pilot_dates(self) -> list[date]:
         dates: list[date] = []
         for w in self.pilot_windows:
-            dates.extend(w.date_list())
+            dates.extend(self.dates_for_window(w))
         return sorted(set(dates))
 
     def total_pilot_days(self) -> int:
@@ -85,6 +112,8 @@ class ExperimentConfig:
             cfg["local_n_gpu_layers"] = self.local_n_gpu_layers
             cfg["local_n_ctx"] = self.local_n_ctx
 
+        cfg["model_input_mode"] = self.model_input_mode
+
         return cfg
 
 
@@ -103,6 +132,24 @@ def load_config(path: str | Path) -> ExperimentConfig:
         for w in raw.get("pilot_windows", [])
     ]
 
+    stride = int(raw.get("date_stride", 1))
+    if stride < 1:
+        raise ValueError("date_stride must be >= 1")
+
+    mode = (raw.get("model_input_mode") or "metrics").lower().strip()
+    if mode not in ("metrics", "signals"):
+        raise ValueError("model_input_mode must be 'metrics' or 'signals'")
+
+    mstrat = raw.get("model_strategies")
+    if mstrat is not None and not isinstance(mstrat, list):
+        raise TypeError("model_strategies must be a list of strings or omitted")
+
+    exp_name = raw.get("experiment_name")
+    # Keep naming consistent by default: when experiment_name is set, artifacts
+    # root is forced to outputs/<experiment_name>. This lets users rename runs
+    # by changing one variable in YAML.
+    artifacts_dir = f"outputs/{exp_name}" if exp_name else raw.get("artifacts_dir", "outputs")
+
     return ExperimentConfig(
         symbol_agent=raw["symbol_agent"],
         symbol_deep_trading=raw.get("symbol_deep_trading", raw["symbol_agent"]),
@@ -119,8 +166,14 @@ def load_config(path: str | Path) -> ExperimentConfig:
         selected_analysts=raw.get(
             "selected_analysts", ["market", "news", "fundamentals"]
         ),
-        artifacts_dir=raw.get("artifacts_dir", "outputs"),
+        artifacts_dir=artifacts_dir,
         max_retries=int(raw.get("max_retries", 3)),
+        deep_trading_artifacts_dir=raw.get("deep_trading_artifacts_dir"),
+        model_input_mode=mode,
+        model_strategies=mstrat,
+        deep_trading_run_id=raw.get("deep_trading_run_id"),
+        experiment_name=exp_name,
+        date_stride=stride,
         local_model_path_deep=raw.get("local_model_path_deep"),
         local_model_path_quick=raw.get("local_model_path_quick"),
         local_n_gpu_layers=int(raw.get("local_n_gpu_layers", -1)),

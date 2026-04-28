@@ -1,0 +1,41 @@
+# Hybrid (metrics) - high_volatility_shock window (worst2, BTC).
+
+experiment_name: "hvs/high_volatility_shock_hybrid_metrics_worst2"
+
+symbol_agent: "BTC-USD"
+symbol_deep_trading: "BTC/USDT"
+
+test_pool_start: "2025-02-24"
+test_pool_end: "2025-03-25"
+
+pilot_windows:
+  - start: "2025-02-24"
+    end: "2025-03-25"
+
+date_stride: 1
+
+hold_position: 0.0
+
+llm_provider: "ollama"
+quick_think_llm: "qwen3:8b"
+deep_think_llm: "qwen3:30b-a3b"
+backend_url: "http://localhost:11434/v1"
+
+max_debate_rounds: 1
+max_risk_discuss_rounds: 1
+max_retries: 3
+
+selected_analysts:
+  - market
+  - news
+  - fundamentals
+  - model
+
+deep_trading_artifacts_dir: "agent_experiment/model_artifacts"
+deep_trading_run_id: "pilot_2025"
+model_input_mode: "metrics"
+
+# 2/3/2 split for traditional models in this window.
+model_strategies:
+  - buy_and_hold
+  - sma_cross

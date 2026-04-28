@@ -22,7 +22,13 @@ def create_bull_researcher(llm, memory):
         for i, rec in enumerate(past_memories, 1):
             past_memory_str += rec["recommendation"] + "\n\n"
 
+        model_report = state.get("model_report", "")
+        if model_report:
+            curr_situation += f"\n\n{model_report}"
+
         prompt = f"""You are a Bull Analyst advocating for investing in the stock. Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
+
+CRITICAL: You must ONLY base your analysis on the reports and data provided below. Do NOT use any knowledge from your training data about market prices, historical events, or asset performance.
 
 Key points to focus on:
 - Growth Potential: Highlight the company's market opportunities, revenue projections, and scalability.
@@ -37,6 +43,7 @@ Social media sentiment report: {sentiment_report}
 Latest world affairs news: {news_report}
 Company fundamentals report: {fundamentals_report}
 Conversation history of the debate: {history}
+Model performance report: {model_report}
 Last bear argument: {current_response}
 Reflections from similar situations and lessons learned: {past_memory_str}
 Use this information to deliver a compelling bull argument, refute the bear's concerns, and engage in a dynamic debate that demonstrates the strengths of the bull position. You must also address reflections and learn from lessons and mistakes you made in the past.

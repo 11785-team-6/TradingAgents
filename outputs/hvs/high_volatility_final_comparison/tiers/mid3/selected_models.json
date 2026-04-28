@@ -1,0 +1,8 @@
+{
+  "tier": "mid3",
+  "models": [
+    "arima_garch",
+    "lstm",
+    "xgboost"
+  ]
+}

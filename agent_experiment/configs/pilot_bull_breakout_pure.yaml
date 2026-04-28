@@ -1,0 +1,31 @@
+# Pure agent — bull_breakout window (BTC).
+
+experiment_name: "bb/bull_breakout_pure"
+
+symbol_agent: "BTC-USD"
+symbol_deep_trading: "BTC/USDT"
+
+test_pool_start: "2025-04-09"
+test_pool_end: "2025-05-08"
+
+pilot_windows:
+  - start: "2025-04-09"
+    end: "2025-05-08"
+
+date_stride: 1
+
+hold_position: 0.0
+
+llm_provider: "ollama"
+quick_think_llm: "qwen3:8b"
+deep_think_llm: "qwen3:30b-a3b"
+backend_url: "http://localhost:11434/v1"
+
+max_debate_rounds: 1
+max_risk_discuss_rounds: 1
+max_retries: 3
+
+selected_analysts:
+  - market
+  - news
+  - fundamentals

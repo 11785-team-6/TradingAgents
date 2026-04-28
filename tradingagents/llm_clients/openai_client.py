@@ -59,7 +59,8 @@ class OpenAIClient(BaseLLMClient):
             if api_key:
                 llm_kwargs["api_key"] = api_key
         elif self.provider == "ollama":
-            llm_kwargs["base_url"] = "http://localhost:11434/v1"
+            # Use ExperimentConfig/YAML backend_url (e.g. per-job SLURM port); else default 11434.
+            llm_kwargs["base_url"] = self.base_url or "http://localhost:11434/v1"
             llm_kwargs["api_key"] = "ollama"
             self._check_ollama(llm_kwargs["base_url"])
         elif self.base_url:

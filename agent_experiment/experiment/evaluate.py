@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -42,14 +43,45 @@ def load_ohlcv(data_path: str | Path) -> pd.DataFrame:
     return df
 
 
+def _calendar_day_range(d0: date, d1: date) -> list[date]:
+    out: list[date] = []
+    d = d0
+    while d <= d1:
+        out.append(d)
+        d += timedelta(days=1)
+    return out
+
+
+def _forward_fill_positions_by_day(signals_df: pd.DataFrame) -> dict[date, float]:
+    """Map each calendar day in [min(date), max(date)] to the latest position known by that day."""
+    df = signals_df.sort_values("date").drop_duplicates(subset=["date"], keep="last")
+    if len(df) == 0:
+        return {}
+
+    cal_min = df["date"].min()
+    cal_max = df["date"].max()
+    rows = list(zip(df["date"].tolist(), df["position"].astype(float).tolist()))
+
+    filled: dict[date, float] = {}
+    j = 0
+    current = 0.0
+    for d in _calendar_day_range(cal_min, cal_max):
+        while j < len(rows) and rows[j][0] <= d:
+            current = float(rows[j][1])
+            j += 1
+        filled[d] = current
+    return filled
+
+
 def build_hourly_positions(
     signals_df: pd.DataFrame,
     ohlcv: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Broadcast daily agent positions onto 1h bars.
+    """Map daily decisions onto 1h bars.
 
-    For each date in signals_df, all 1h bars of that date get the
-    agent's position for that day.
+    Decisions may be sparse (e.g. ``date_stride`` > 1). Positions **forward-fill**
+    until the next decision: every calendar day from the first to the last signal
+    date uses the latest known position as of that day.
     """
     close = ohlcv["close"].astype(float)
     log_ret = np.log(close / close.shift(1))
@@ -57,21 +89,20 @@ def build_hourly_positions(
 
     vol_24 = log_ret.rolling(24).std() * np.sqrt(24)
 
-    date_to_position = {
-        row["date"]: row["position"]
-        for _, row in signals_df.iterrows()
-    }
-    pilot_dates = set(date_to_position.keys())
+    day_to_position = _forward_fill_positions_by_day(signals_df)
+    if not day_to_position:
+        raise ValueError("signals_df has no valid dates")
 
-    mask = ohlcv.index.map(lambda ts: ts.date() in pilot_dates)
+    cal_min = min(day_to_position.keys())
+    cal_max = max(day_to_position.keys())
+
+    mask = ohlcv.index.map(lambda ts: cal_min <= ts.date() <= cal_max)
     eval_df = ohlcv.loc[mask].copy()
 
     if len(eval_df) == 0:
         raise ValueError("No OHLCV bars match the pilot dates")
 
-    eval_df["position"] = eval_df.index.map(
-        lambda ts: date_to_position.get(ts.date(), 0.0)
-    )
+    eval_df["position"] = eval_df.index.map(lambda ts: day_to_position[ts.date()])
     eval_df["asset_return"] = asset_return.reindex(eval_df.index).fillna(0.0)
     eval_df["realized_vol_24"] = vol_24.reindex(eval_df.index)
     eval_df["position_lag"] = eval_df["position"].shift(1).fillna(0.0)

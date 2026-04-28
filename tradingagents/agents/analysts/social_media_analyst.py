@@ -30,6 +30,7 @@ def create_social_media_analyst(llm):
                     " will help where you left off. Execute what you can to make progress."
                     " If you or any other assistant has the FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** or deliverable,"
                     " prefix your response with FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** so the team knows to stop."
+                    " CRITICAL: You must ONLY base your analysis on data returned by your tools. Do NOT use any knowledge from your training data about market prices, historical events, or asset performance. If a tool returns no data, say so — do not fill in from memory."
                     " You have access to the following tools: {tool_names}.\n{system_message}"
                     "For your reference, the current date is {current_date}. The current company we want to analyze is {ticker}",
                 ),

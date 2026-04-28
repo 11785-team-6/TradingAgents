@@ -1,0 +1,45 @@
+# Agent + Model Walk-Forward Experiment Configuration
+#
+# Matches deep-trading default.yaml: test period 2023-2025, 45-day windows.
+# Agent receives all four model metrics (LSTM, XGBoost, ARIMA, Ensemble)
+# as an additional "Model Analyst" input.
+
+symbols:
+  - symbol_agent: "BTC-USD"
+    symbol_deep_trading: "BTC/USDT"
+  - symbol_agent: "ETH-USD"
+    symbol_deep_trading: "ETH/USDT"
+
+# Walk-forward settings (must match deep-trading default.yaml)
+test_start: "2023-01-01"
+test_end: "2025-12-31"
+walk_forward_retrain_days: 45
+
+# Path to deep-trading artifacts directory (relative to repo root or absolute)
+deep_trading_artifacts_dir: "agent_experiment/model_artifacts"
+
+# Signal mapping: tri-state (-1 sell, 0 hold, 1 buy)
+hold_position: 0.0
+
+# LLM / inference
+llm_provider: "ollama"
+quick_think_llm: "qwen3:8b"
+deep_think_llm: "qwen3:30b-a3b"
+backend_url: "http://localhost:11434/v1"
+
+# Debate rounds
+max_debate_rounds: 1
+max_risk_discuss_rounds: 1
+
+# Retry on transient LLM errors
+max_retries: 3
+
+# Analysts to include (model = new Model Analyst reading deep-trading metrics)
+selected_analysts:
+  - market
+  - news
+  - fundamentals
+  - model
+
+# Output
+artifacts_dir: "outputs"

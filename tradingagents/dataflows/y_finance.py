@@ -36,12 +36,26 @@ def get_YFin_data_online(
         if col in data.columns:
             data[col] = data[col].round(2)
 
+    # Keep tool outputs bounded so agent prompts do not exceed LLM context.
+    max_rows = 90
+    tail_data = data.tail(max_rows).copy()
+
     # Convert DataFrame to CSV string
-    csv_string = data.to_csv()
+    csv_string = tail_data.to_csv()
 
     # Add header information
     header = f"# Stock data for {symbol.upper()} from {start_date} to {end_date}\n"
-    header += f"# Total records: {len(data)}\n"
+    header += f"# Total records available: {len(data)}\n"
+    header += f"# Returning last {len(tail_data)} rows (cap={max_rows}) to control prompt size\n"
+
+    if "Close" in tail_data.columns and not tail_data.empty:
+        header += (
+            f"# Close(min/max/last): "
+            f"{tail_data['Close'].min():.2f}/{tail_data['Close'].max():.2f}/{tail_data['Close'].iloc[-1]:.2f}\n"
+        )
+    if "Volume" in tail_data.columns and not tail_data.empty:
+        header += f"# Volume(avg): {tail_data['Volume'].mean():.0f}\n"
+
     header += f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
 
     return header + csv_string
@@ -133,9 +147,13 @@ def get_stock_stats_indicators_window(
             f"Indicator {indicator} is not supported. Please choose from: {list(best_ind_params.keys())}"
         )
 
+    max_lookback_days = 14
+    max_output_lines = 14
+    effective_look_back = max(1, min(int(look_back_days), max_lookback_days))
+
     end_date = curr_date
     curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
-    before = curr_date_dt - relativedelta(days=look_back_days)
+    before = curr_date_dt - relativedelta(days=effective_look_back)
 
     # Optimized: Get stock data once and calculate indicators for all dates
     try:
@@ -157,7 +175,8 @@ def get_stock_stats_indicators_window(
             date_values.append((date_str, indicator_value))
             current_dt = current_dt - relativedelta(days=1)
         
-        # Build the result string
+        # Build bounded result lines (newest first).
+        date_values = date_values[:max_output_lines]
         ind_string = ""
         for date_str, value in date_values:
             ind_string += f"{date_str}: {value}\n"
@@ -167,15 +186,18 @@ def get_stock_stats_indicators_window(
         # Fallback to original implementation if bulk method fails
         ind_string = ""
         curr_date_dt = datetime.strptime(curr_date, "%Y-%m-%d")
-        while curr_date_dt >= before:
+        lines = 0
+        while curr_date_dt >= before and lines < max_output_lines:
             indicator_value = get_stockstats_indicator(
                 symbol, indicator, curr_date_dt.strftime("%Y-%m-%d")
             )
             ind_string += f"{curr_date_dt.strftime('%Y-%m-%d')}: {indicator_value}\n"
             curr_date_dt = curr_date_dt - relativedelta(days=1)
+            lines += 1
 
     result_str = (
-        f"## {indicator} values from {before.strftime('%Y-%m-%d')} to {end_date}:\n\n"
+        f"## {indicator} values from {before.strftime('%Y-%m-%d')} to {end_date} "
+        f"(effective_look_back={effective_look_back}, output_cap={max_output_lines}):\n\n"
         + ind_string
         + "\n\n"
         + best_ind_params.get(indicator, "No description available.")

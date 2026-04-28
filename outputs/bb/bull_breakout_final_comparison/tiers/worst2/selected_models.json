@@ -1,0 +1,7 @@
+{
+  "tier": "worst2",
+  "models": [
+    "xgb_lstm_ensemble",
+    "xgboost"
+  ]
+}
